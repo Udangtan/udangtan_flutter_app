@@ -57,8 +57,8 @@ Flutter SDK가 설치되어 있는지 확인 후, 프로젝트를 클론합니�
 - 프로젝트 내 적용한 lint 옵션 설명
   - **camel_case_types**: 클래스나 타입 이름은 PascalCase로 작성
   - **line_longer_than_80_chars**: 한 줄의 길이는 80자를 넘지 않아야 함
-  - **package_api_docs**: 패키지 라이브러리 파일에는 문서 주석이 있어야 함
-  - **public_member_api_docs**: 공개 클래스의 멤버에는 문서 주석을 작성해야 함
+  - **package_api_docs**: 패키지 라이브러리 파일에는 문서 주석이 있어야 함(생각보다 문서화가 어려워서 주석처리함(사용 안하는 lint RULE))
+  - **public_member_api_docs**: 공개 클래스의 멤버에는 문서 주석을 작성해야 함(생각보다 문서화가 어려워서 주석처리함(사용 안하는 lint RULE))
   - **always_use_package_imports**: 상대 경로 대신 패키지 경로 (import 'package:...') 사용
   - **avoid_dynamic_calls**: dynamic 타입의 변수를 함수처럼 호출하는 것을 방지
   - **avoid_empty_else**: 비어 있는 else 블록을 방지 (불필요한 코드 제거)

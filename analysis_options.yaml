@@ -4,8 +4,6 @@ linter:
   rules:
     - camel_case_types
     - line_longer_than_80_chars
-    - package_api_docs
-    - public_member_api_docs
     - always_use_package_imports
     - avoid_dynamic_calls
     - avoid_empty_else
