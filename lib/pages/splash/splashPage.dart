@@ -8,38 +8,53 @@ class SplashPage extends StatefulWidget {
   State<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> {
-  double _opacity = 0.0;
-  bool _showText = false;
+class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
+  double _imageOpacity = 0.0;
+  double _secondImageOpacity = 0.0;
+  bool _showText1 = false;
+  bool _showText2 = false;
+  bool _showText3 = false;
 
   @override
   void initState() {
     super.initState();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startSplashAnimation();
-    });
-  }
-
-  Future<void> _startSplashAnimation() async {
     FlutterNativeSplash.remove();
 
-    // fade-in 시작
+    _startSplashSequence();
+  }
+
+  Future<void> _startSplashSequence() async {
+    // 0.5초 뒤 텍스트 1
+    await Future.delayed(const Duration(milliseconds: 500));
     setState(() {
-      _opacity = 1.0;
+      _showText1 = true;
     });
 
-    // 2초 동안 이미지 fade-in
+    // 0.5초 뒤 텍스트 2
+    await Future.delayed(const Duration(milliseconds: 500));
+    setState(() {
+      _showText2 = true;
+    });
+
+    // 0.5초 뒤 텍스트 3
+    await Future.delayed(const Duration(milliseconds: 500));
+    setState(() {
+      _showText3 = true;
+    });
+
+    // 동시에 이미지 나타나기 시작
+    setState(() {
+      _imageOpacity = 1.0;
+    });
+
+    // 이미지가 충분히 보이고 2초 후 이미지 교체
     await Future.delayed(const Duration(seconds: 2));
-
-    // 이미지 fully visible 된 후 텍스트 보여주기
     setState(() {
-      _showText = true;
+      _secondImageOpacity = 1.0;
     });
 
-    // 전체 splash 시간은 약 5초 → 3초 더 기다리고 다음 화면으로 이동
-    await Future.delayed(const Duration(seconds: 3));
-
+    // 4초 보여준 후 다음 화면으로 이동
+    await Future.delayed(const Duration(seconds: 4));
     if (context.mounted) {
       Navigator.pushReplacementNamed(context, '/welcome');
     }
@@ -48,41 +63,79 @@ class _SplashPageState extends State<SplashPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // HTML splash와 동일한 배경
+      backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            /// 텍스트들 (순차 Fade)
             AnimatedOpacity(
-              opacity: _opacity,
-              duration: const Duration(seconds: 2),
-              curve: Curves.easeInOut,
-              child: Column(
-                children: [
-                  Image.asset(
-                    'assets/images/splash-image.png',
-                    width: 150,
-                    height: 150,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(height: 24),
-                  // const CircularProgressIndicator(color: Colors.deepPurple), // 로딩바
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // 텍스트는 이미지 fully shown 후 표시
-            if (_showText)
-              const Text(
-                '오늘부터 PetFriend',
+              opacity: _showText1 ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 800),
+              child: const Text(
+                '친구찾기',
                 style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple,
+                  fontSize: 22,
+                  color: Color(0xFF999999),
                 ),
               ),
+            ),
+            const SizedBox(height: 8),
+            AnimatedOpacity(
+              opacity: _showText2 ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 800),
+              child: const Text(
+                '이제 반려동물도 시작해요',
+                style: TextStyle(
+                  fontSize: 22,
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            AnimatedOpacity(
+              opacity: _showText3 ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 800),
+              child: const Text(
+                '오늘부터 PetFriend',
+                style: TextStyle(
+                  fontSize: 22,
+                  color: Colors.deepPurple,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            /// 이미지 1 → 이미지 2 전환
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                AnimatedOpacity(
+                  opacity: _imageOpacity,
+                  duration: const Duration(seconds: 2),
+                  curve: Curves.easeInOut,
+                  child: Image.asset(
+                    'assets/images/splash-image.png',
+                    width: 160,
+                    height: 160,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                AnimatedOpacity(
+                  opacity: _secondImageOpacity,
+                  duration: const Duration(seconds: 2),
+                  curve: Curves.easeInOut,
+                  child: Image.asset(
+                    'assets/images/splash-image2.png',
+                    width: 160,
+                    height: 160,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
