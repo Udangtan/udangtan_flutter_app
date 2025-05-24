@@ -1,12 +1,11 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:udangtan_flutter_app/pages/auth/authPage.dart';
+import 'package:udangtan_flutter_app/pages/auth/auth_page.dart';
 import 'package:udangtan_flutter_app/pages/auth/login.dart';
-import 'package:udangtan_flutter_app/pages/auth/registerPage.dart';
-import 'package:udangtan_flutter_app/pages/auth/registerSuccessPage.dart';
-import 'package:udangtan_flutter_app/pages/home/homePage.dart';
-import 'package:udangtan_flutter_app/pages/splash/splashPage.dart';
+import 'package:udangtan_flutter_app/pages/auth/register_page.dart';
+import 'package:udangtan_flutter_app/pages/auth/register_success_page.dart';
+import 'package:udangtan_flutter_app/pages/main/main_navigation.dart';
+import 'package:udangtan_flutter_app/pages/splash/splash_page.dart';
 
 Future main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -38,7 +37,7 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const RegisterPage(),
         '/register-success': (context) => const RegisterSuccessPage(),
         '/login': (context) => const LoginPage(),
-        '/home': (context) => const HomePage(),
+        '/home': (context) => const MainNavigation(),
       },
 
       //home: Scaffold(

@@ -67,19 +67,27 @@ class _RegisterPageState extends State<RegisterPage> {
                         hintStyle: const TextStyle(color: Color(0xFFB2B2B2)),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFD9D9D9)), // 기본 상태
+                          borderSide: const BorderSide(
+                            color: Color(0xFFD9D9D9),
+                          ), // 기본 상태
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF9E4BDE), width: 1), // 포커스 상태
+                          borderSide: const BorderSide(
+                            color: Color(0xFF9E4BDE),
+                            width: 1,
+                          ), // 포커스 상태
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       onChanged: (value) => name = value,
-                      validator: (value) =>
-                      value == null || value.isEmpty ? '이름을 입력해주세요' : null,
+                      validator:
+                          (value) =>
+                              value == null || value.isEmpty
+                                  ? '이름을 입력해주세요'
+                                  : null,
                     ),
                     const SizedBox(height: 16),
 
@@ -99,11 +107,16 @@ class _RegisterPageState extends State<RegisterPage> {
                         hintStyle: const TextStyle(color: Color(0xFFB2B2B2)),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFD9D9D9)), // 기본 상태
+                          borderSide: const BorderSide(
+                            color: Color(0xFFD9D9D9),
+                          ), // 기본 상태
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF9E4BDE), width: 1), // 포커스 상태
+                          borderSide: const BorderSide(
+                            color: Color(0xFF9E4BDE),
+                            width: 1,
+                          ), // 포커스 상태
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -139,18 +152,25 @@ class _RegisterPageState extends State<RegisterPage> {
                         hintStyle: const TextStyle(color: Color(0xFFB2B2B2)),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFD9D9D9)), // 기본 상태
+                          borderSide: const BorderSide(
+                            color: Color(0xFFD9D9D9),
+                          ), // 기본 상태
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF9E4BDE), width: 1), // 포커스 상태
+                          borderSide: const BorderSide(
+                            color: Color(0xFF9E4BDE),
+                            width: 1,
+                          ), // 포커스 상태
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                           ),
                           onPressed: () {
                             setState(() {
@@ -160,11 +180,12 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ),
                       onChanged: (value) => password = value,
-                      validator: (value) => value == null || value.length < 6
-                          ? '6자 이상 입력해주세요'
-                          : null,
+                      validator:
+                          (value) =>
+                              value == null || value.length < 6
+                                  ? '6자 이상 입력해주세요'
+                                  : null,
                     ),
-
 
                     const SizedBox(height: 24),
                     // 약관 체크박스
@@ -185,7 +206,10 @@ class _RegisterPageState extends State<RegisterPage> {
                         const SizedBox(width: 8),
                         const Text(
                           '모두 동의 (선택포함)',
-                          style: TextStyle(fontSize: 14, color: Color(0xFF68717E)),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF68717E),
+                          ),
                         ),
                       ],
                     ),
@@ -204,9 +228,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     _agreementRow('혜택 및 마케팅 정보 수신 동의(선택)', agree3, (v) {
                       setState(() => agree3 = v ?? false);
                     }, showView: false),
-
-
-
                   ],
                 ),
               ),
@@ -239,28 +260,26 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
             ),
             child: const Text(
-                '가입하기',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white,
-              ),
+              '가입하기',
+              style: TextStyle(fontSize: 16, color: Colors.white),
             ),
           ),
         ),
       ),
     );
   }
+
   bool showRequired1 = false; // 이용약관 필수 표시 여부
   bool showRequired2 = false; // 개인정보 필수 표시 여부
 
   Widget _agreementRow(
-      String title,
-      bool value,
-      Function(bool?) onChanged, {
-        bool showView = true,
-      }) {
-    // 필수 표시 조건 분기
-    final bool showRequired = (title == '이용약관' && showRequired1) ||
+    String title,
+    bool value,
+    Function(bool?) onChanged, {
+    bool showView = true,
+  }) {
+    var showRequired =
+        (title == '이용약관' && showRequired1) ||
         (title == '개인정보 취급방침' && showRequired2);
 
     return Row(
@@ -306,6 +325,4 @@ class _RegisterPageState extends State<RegisterPage> {
       ],
     );
   }
-
-
 }

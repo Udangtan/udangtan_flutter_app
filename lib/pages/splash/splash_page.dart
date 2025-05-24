@@ -19,44 +19,43 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     FlutterNativeSplash.remove();
-
     _startSplashSequence();
   }
 
   Future<void> _startSplashSequence() async {
-    // 0.5초 뒤 텍스트 1
     await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
     setState(() {
       _showText1 = true;
     });
 
-    // 0.5초 뒤 텍스트 2
     await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
     setState(() {
       _showText2 = true;
     });
 
-    // 0.5초 뒤 텍스트 3
     await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
     setState(() {
       _showText3 = true;
     });
 
-    // 동시에 이미지 나타나기 시작
+    if (!mounted) return;
     setState(() {
       _imageOpacity = 1.0;
     });
 
-    // 이미지가 충분히 보이고 2초 후 이미지 교체
     await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
     setState(() {
       _secondImageOpacity = 1.0;
     });
 
-    // 4초 보여준 후 다음 화면으로 이동
     await Future.delayed(const Duration(seconds: 4));
+    if (!mounted) return;
     if (context.mounted) {
-      Navigator.pushReplacementNamed(context, '/welcome');
+      await Navigator.pushReplacementNamed(context, '/welcome');
     }
   }
 
@@ -74,10 +73,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
               duration: const Duration(milliseconds: 800),
               child: const Text(
                 '친구찾기',
-                style: TextStyle(
-                  fontSize: 22,
-                  color: Color(0xFF999999),
-                ),
+                style: TextStyle(fontSize: 22, color: Color(0xFF999999)),
               ),
             ),
             const SizedBox(height: 8),

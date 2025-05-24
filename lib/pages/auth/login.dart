@@ -63,11 +63,16 @@ class _LoginPageState extends State<LoginPage> {
                         hintStyle: const TextStyle(color: Color(0xFFB2B2B2)),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFD9D9D9)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFD9D9D9),
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF9E4BDE), width: 1),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF9E4BDE),
+                            width: 1,
+                          ),
                         ),
                       ),
                       keyboardType: TextInputType.emailAddress,
@@ -100,15 +105,22 @@ class _LoginPageState extends State<LoginPage> {
                         hintStyle: const TextStyle(color: Color(0xFFB2B2B2)),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFD9D9D9)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFD9D9D9),
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF9E4BDE), width: 1),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF9E4BDE),
+                            width: 1,
+                          ),
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                           ),
                           onPressed: () {
                             setState(() {
@@ -118,8 +130,11 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       onChanged: (value) => password = value,
-                      validator: (value) =>
-                      value == null || value.length < 6 ? '6자 이상 입력해주세요' : null,
+                      validator:
+                          (value) =>
+                              value == null || value.length < 6
+                                  ? '6자 이상 입력해주세요'
+                                  : null,
                     ),
                   ],
                 ),
@@ -138,8 +153,9 @@ class _LoginPageState extends State<LoginPage> {
           child: ElevatedButton(
             onPressed: () {
               if (_formKey.currentState!.validate()) {
-                if (email == 'hong123@gmail.com' && password == 'a1234!@') {
-                  Navigator.pushNamed(context, '/home'); // 실제 홈 라우트
+                if ((email == 'hong123@gmail.com' && password == 'a1234!@') ||
+                    (email == '1234@gmail.com' && password == '123456')) {
+                  Navigator.pushReplacementNamed(context, '/home'); // 뒤로가기 방지
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -163,7 +179,6 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       ),
-
     );
   }
 }

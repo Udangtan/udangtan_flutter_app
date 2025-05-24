@@ -20,7 +20,11 @@ class RegisterSuccessPage extends StatelessWidget {
                       color: Color(0xFF9E4BDE),
                     ),
                     padding: const EdgeInsets.all(16),
-                    child: const Icon(Icons.check, color: Colors.white, size: 32),
+                    child: const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 32,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
@@ -53,10 +57,7 @@ class RegisterSuccessPage extends StatelessWidget {
                     ),
                     child: const Text(
                       '확인',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white,
-                      ),
+                      style: TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ),
                 ),

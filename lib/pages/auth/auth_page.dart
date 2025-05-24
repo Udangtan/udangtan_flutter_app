@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 
 class AuthPage extends StatelessWidget {
   const AuthPage({super.key});
@@ -20,10 +20,7 @@ class AuthPage extends StatelessWidget {
 
               const Text(
                 'Pet Friend에 오신 것을 환영합니다!',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
 
               // const SizedBox(height: 10),
@@ -32,7 +29,6 @@ class AuthPage extends StatelessWidget {
               //   '이메일로 가입하거나 로그인해 주세요.',
               //   style: TextStyle(fontSize: 16, color: Colors.grey),
               // ),
-
               const SizedBox(height: 40),
               // 카카오로 가입
               SizedBox(
@@ -147,7 +143,6 @@ class AuthPage extends StatelessWidget {
                 ),
               ),
 
-
               const SizedBox(height: 16),
               // 이메일로 가입
               SizedBox(
@@ -189,12 +184,7 @@ class AuthPage extends StatelessWidget {
               const SizedBox(height: 30),
               const Row(
                 children: [
-                  Expanded(
-                    child: Divider(
-                      color: Colors.grey,
-                      thickness: 1,
-                    ),
-                  ),
+                  Expanded(child: Divider(color: Colors.grey, thickness: 1)),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 10),
                     child: Text(
@@ -202,16 +192,11 @@ class AuthPage extends StatelessWidget {
                       style: TextStyle(
                         color: Colors.grey,
                         fontSize: 14,
-                        fontWeight: FontWeight.w500
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
-                  Expanded(
-                    child: Divider(
-                      color: Colors.grey,
-                      thickness: 1,
-                    ),
-                  ),
+                  Expanded(child: Divider(color: Colors.grey, thickness: 1)),
                 ],
               ),
 
@@ -245,12 +230,15 @@ class AuthPage extends StatelessWidget {
                 ],
               ),
 
-
               const SizedBox(height: 20),
               RichText(
                 text: TextSpan(
                   text: '이미 회원이신가요? ',
-                  style: const TextStyle(color: Colors.black87, fontSize: 14, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
                   children: [
                     TextSpan(
                       text: '로그인',
@@ -258,10 +246,11 @@ class AuthPage extends StatelessWidget {
                         color: Colors.deepPurple,
                         fontWeight: FontWeight.bold,
                       ),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () {
-                          Navigator.pushNamed(context, '/login');
-                        },
+                      recognizer:
+                          TapGestureRecognizer()
+                            ..onTap = () {
+                              Navigator.pushNamed(context, '/login');
+                            },
                     ),
                   ],
                 ),

@@ -3,7 +3,6 @@ include: package:flutter_lints/flutter.yaml
 linter:
   rules:
     - camel_case_types
-    - line_longer_than_80_chars
     - always_use_package_imports
     - avoid_dynamic_calls
     - avoid_empty_else
