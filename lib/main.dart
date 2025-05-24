@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+
 import 'package:udangtan_flutter_app/pages/auth/auth_page.dart';
 import 'package:udangtan_flutter_app/pages/auth/login.dart';
 import 'package:udangtan_flutter_app/pages/auth/register_page.dart';
 import 'package:udangtan_flutter_app/pages/auth/register_success_page.dart';
 import 'package:udangtan_flutter_app/pages/main/main_navigation.dart';
+import 'package:udangtan_flutter_app/pages/onboarding/onboarding_page.dart';
+import 'package:udangtan_flutter_app/pages/onboarding/onboarding_success_page.dart';
 import 'package:udangtan_flutter_app/pages/splash/splash_page.dart';
 
 Future main() async {
@@ -38,6 +41,8 @@ class MyApp extends StatelessWidget {
         '/register-success': (context) => const RegisterSuccessPage(),
         '/login': (context) => const LoginPage(),
         '/home': (context) => const MainNavigation(),
+        '/onboarding': (context) => const OnboardingPage(),
+        '/onboarding-success': (context) => const OnboardingSuccessPage(),
       },
 
       //home: Scaffold(
