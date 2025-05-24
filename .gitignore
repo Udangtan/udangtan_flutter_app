@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Ignore Flutter generated platform files
+linux/flutter/*
+windows/flutter/*
+macos/Flutter/GeneratedPluginRegistrant.swift
