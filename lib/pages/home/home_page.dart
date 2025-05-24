@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+
+import 'package:udangtan_flutter_app/features/home/widgets/pet_card_stack.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
+import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
 import 'package:udangtan_flutter_app/shared/widgets/common_bottom_navigation.dart';
-import 'package:udangtan_flutter_app/shared/widgets/pet_card_stack.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -22,44 +24,35 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Row(
-                children: [
-                  Text(
-                    '홈',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  Spacer(),
-                ],
-              ),
-            ),
-            Expanded(child: _buildCardStack()),
-          ],
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF5F5F5),
+        appBar: const CommonAppBar(
+          title: '홈',
+          automaticallyImplyLeading: false,
         ),
-      ),
-      bottomNavigationBar: CommonBottomNavigation(
-        currentIndex: widget.currentNavIndex,
-        onTap: widget.onNavTap,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            child: _buildCardStack(),
+          ),
+        ),
+        bottomNavigationBar: CommonBottomNavigation(
+          currentIndex: widget.currentNavIndex,
+          onTap: widget.onNavTap,
+        ),
       ),
     );
   }
 
   Widget _buildCardStack() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: PetCardStack(
-        onSwipe: (pet, result) {
-          if (result == SwipeResult.approve) {
-            widget.onPetLiked(pet);
-          }
-        },
-      ),
+    return PetCardStack(
+      onSwipe: (pet, result) {
+        if (result == SwipeResult.approve) {
+          widget.onPetLiked(pet);
+        }
+      },
     );
   }
 }

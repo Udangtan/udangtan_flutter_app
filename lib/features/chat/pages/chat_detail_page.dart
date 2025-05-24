@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
+import 'package:udangtan_flutter_app/features/chat/pages/profile_detail_page.dart';
 import 'package:udangtan_flutter_app/models/chat_message.dart';
 import 'package:udangtan_flutter_app/models/chat_room.dart';
-import 'package:udangtan_flutter_app/pages/chat/profile_detail_page.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
 import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
 
@@ -68,48 +69,46 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       backgroundColor: const Color(0xFFF8F8F8),
       appBar: CommonAppBar(
         title: widget.chatRoom.otherUser.name,
-        titleWidget: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                width: 40,
-                height: 40,
-                color: AppColors.cardBackground,
-                child: Image.asset(
-                  widget.chatRoom.otherUser.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder:
-                      (context, error, stackTrace) => const Icon(
-                        Icons.pets,
-                        size: 20,
-                        color: Colors.white70,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) =>
+                            ProfileDetailPage(pet: widget.chatRoom.otherUser),
+                  ),
+                );
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      color: AppColors.cardBackground,
+                      child: Image.asset(
+                        widget.chatRoom.otherUser.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder:
+                            (context, error, stackTrace) => const Icon(
+                              Icons.pets,
+                              size: 16,
+                              color: Colors.white70,
+                            ),
                       ),
-                ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
-            Text(
-              widget.chatRoom.otherUser.name,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        onTitleTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (context) =>
-                      ProfileDetailPage(pet: widget.chatRoom.otherUser),
-            ),
-          );
-        },
+          ),
+        ],
       ),
       body: Column(
         children: [

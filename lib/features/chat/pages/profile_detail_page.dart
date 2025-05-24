@@ -11,21 +11,21 @@ class ProfileDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade300,
       body: Stack(
         children: [
           Container(
+            height: MediaQuery.of(context).size.height * 0.6,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.grey.shade400, Colors.grey.shade300],
+                colors: [AppColors.primary, AppColors.primaryDark],
               ),
             ),
           ),
 
           Positioned(
-            top: MediaQuery.of(context).padding.top + 16,
+            top: 50,
             right: 20,
             child: GestureDetector(
               onTap: () => Navigator.pop(context),
@@ -33,10 +33,14 @@ class ProfileDetailPage extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.containerBackground,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.close, color: Colors.grey, size: 20),
+                child: Icon(
+                  Icons.close,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
               ),
             ),
           ),
@@ -54,11 +58,11 @@ class ProfileDetailPage extends StatelessWidget {
                       margin: const EdgeInsets.only(top: 50),
                       padding: const EdgeInsets.fromLTRB(24, 70, 24, 24),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.containerBackground,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
+                            color: AppColors.shadowMedium,
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -72,7 +76,7 @@ class ProfileDetailPage extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              color: AppColors.textPrimary,
                             ),
                           ),
 
@@ -80,9 +84,9 @@ class ProfileDetailPage extends StatelessWidget {
 
                           Text(
                             '${pet.age}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
-                              color: Colors.grey,
+                              color: AppColors.textSecondary,
                             ),
                           ),
 
@@ -92,7 +96,7 @@ class ProfileDetailPage extends StatelessWidget {
                             '내 이름은 ${pet.name}😊',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey.shade600,
+                              color: AppColors.textSecondary,
                             ),
                           ),
 
@@ -105,7 +109,7 @@ class ProfileDetailPage extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black,
+                                color: AppColors.textPrimary,
                               ),
                             ),
                           ),
@@ -118,27 +122,36 @@ class ProfileDetailPage extends StatelessWidget {
                             children: [
                               TagButton(
                                 text: '${pet.age}살',
-                                color: AppColors.tagGrey,
+                                color: AppColors.tagBackground,
                               ),
                               TagButton(
                                 text: '산책 좋아',
-                                color: AppColors.tagGrey,
+                                color: AppColors.tagBackground,
                               ),
                               TagButton(
                                 text: '야외 배변',
-                                color: AppColors.tagGrey,
+                                color: AppColors.tagBackground,
                               ),
                               TagButton(
                                 text: '1일 2산책',
-                                color: AppColors.tagGrey,
+                                color: AppColors.tagBackground,
                               ),
                               TagButton(
                                 text: '고리아스헤어',
-                                color: AppColors.tagGrey,
+                                color: AppColors.tagBackground,
                               ),
-                              TagButton(text: '친구', color: AppColors.tagGrey),
-                              TagButton(text: '고양이', color: AppColors.tagGrey),
-                              TagButton(text: '수르놀아', color: AppColors.tagGrey),
+                              TagButton(
+                                text: '친구',
+                                color: AppColors.tagBackground,
+                              ),
+                              TagButton(
+                                text: '고양이',
+                                color: AppColors.tagBackground,
+                              ),
+                              TagButton(
+                                text: '수르놀아',
+                                color: AppColors.tagBackground,
+                              ),
                             ],
                           ),
 
@@ -151,7 +164,7 @@ class ProfileDetailPage extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black,
+                                color: AppColors.textPrimary,
                               ),
                             ),
                           ),
@@ -164,24 +177,36 @@ class ProfileDetailPage extends StatelessWidget {
                             children: [
                               TagButton(
                                 text: '일일 급식',
-                                color: AppColors.tagGrey,
+                                color: AppColors.tagBackground,
                               ),
                               TagButton(
                                 text: '주 1회 산책',
-                                color: AppColors.tagGrey,
+                                color: AppColors.tagBackground,
                               ),
                               TagButton(
                                 text: '간식 나누',
-                                color: AppColors.tagGrey,
+                                color: AppColors.tagBackground,
                               ),
                               TagButton(
                                 text: '사료 급식',
-                                color: AppColors.tagGrey,
+                                color: AppColors.tagBackground,
                               ),
-                              TagButton(text: '아무거나', color: AppColors.tagGrey),
-                              TagButton(text: '친구', color: AppColors.tagGrey),
-                              TagButton(text: '고양이', color: AppColors.tagGrey),
-                              TagButton(text: '수르놀아', color: AppColors.tagGrey),
+                              TagButton(
+                                text: '아무거나',
+                                color: AppColors.tagBackground,
+                              ),
+                              TagButton(
+                                text: '친구',
+                                color: AppColors.tagBackground,
+                              ),
+                              TagButton(
+                                text: '고양이',
+                                color: AppColors.tagBackground,
+                              ),
+                              TagButton(
+                                text: '수르놀아',
+                                color: AppColors.tagBackground,
+                              ),
                             ],
                           ),
                         ],
@@ -202,7 +227,7 @@ class ProfileDetailPage extends StatelessWidget {
                               color: AppColors.cardBackground,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
+                                  color: AppColors.shadowMedium,
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
 
 class CommonBottomNavigation extends StatelessWidget {
   const CommonBottomNavigation({
@@ -12,17 +13,31 @@ class CommonBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      backgroundColor: Colors.white,
-      type: BottomNavigationBarType.fixed,
-      currentIndex: currentIndex,
-      onTap: onTap,
-      selectedItemColor: Colors.purple,
-      unselectedItemColor: Colors.grey,
-      showSelectedLabels: true,
-      showUnselectedLabels: true,
-      elevation: 8,
-      items: _buildNavItems(),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bottomNavBackground,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowLight,
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: BottomNavigationBar(
+        backgroundColor: AppColors.bottomNavBackground,
+        type: BottomNavigationBarType.fixed,
+        currentIndex: currentIndex,
+        onTap: onTap,
+        selectedItemColor: AppColors.bottomNavSelected,
+        unselectedItemColor: AppColors.bottomNavUnselected,
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        elevation: 0,
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
+        items: _buildNavItems(),
+      ),
     );
   }
 

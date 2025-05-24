@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+
+import 'package:udangtan_flutter_app/features/chat/pages/chat_list_page.dart';
+import 'package:udangtan_flutter_app/features/profile/pages/profile_page.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
-import 'package:udangtan_flutter_app/pages/chat/chat_list_page.dart';
 import 'package:udangtan_flutter_app/pages/home/home_page.dart';
 import 'package:udangtan_flutter_app/pages/snacks/snacks_page.dart';
-import 'package:udangtan_flutter_app/shared/widgets/common_bottom_navigation.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -51,7 +52,7 @@ class _MainNavigationState extends State<MainNavigation> {
           onNavTap: _onNavTap,
         );
       case 3:
-        return _buildComingSoonPage('마이');
+        return ProfilePage(currentNavIndex: _currentIndex, onNavTap: _onNavTap);
       default:
         return HomePage(
           currentNavIndex: _currentIndex,
@@ -59,67 +60,5 @@ class _MainNavigationState extends State<MainNavigation> {
           onPetLiked: _onPetLiked,
         );
     }
-  }
-
-  Widget _buildComingSoonPage(String pageName) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Row(
-                children: [
-                  Text(
-                    pageName,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.construction,
-                      size: 80,
-                      color: Colors.grey.shade400,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      '$pageName 페이지',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '곧 출시될 예정입니다!',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: CommonBottomNavigation(
-        currentIndex: _currentIndex,
-        onTap: _onNavTap,
-      ),
-    );
   }
 }

@@ -22,7 +22,7 @@ class PetTraitsModal extends StatelessWidget {
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.containerBackground,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
@@ -35,7 +35,7 @@ class PetTraitsModal extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: AppColors.borderLight,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -74,13 +74,14 @@ class PetTraitsModal extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                           Text(
                             '${pet.age}세 · ${pet.location}',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey.shade600,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ],
@@ -88,7 +89,7 @@ class PetTraitsModal extends StatelessWidget {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
+                      icon: Icon(Icons.close, color: AppColors.textSecondary),
                     ),
                   ],
                 ),
@@ -98,6 +99,7 @@ class PetTraitsModal extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -106,9 +108,9 @@ class PetTraitsModal extends StatelessWidget {
                   runSpacing: 8,
                   children:
                       pet.allTags.map((tag) {
-                        Color tagColor = AppColors.tagGrey;
+                        Color tagColor = AppColors.tagBackground;
                         if (tag.contains('활발') || tag.contains('놀이')) {
-                          tagColor = AppColors.tagBlue;
+                          tagColor = AppColors.primaryWithOpacity10;
                         }
                         return TagButton(text: tag, color: tagColor);
                       }).toList(),

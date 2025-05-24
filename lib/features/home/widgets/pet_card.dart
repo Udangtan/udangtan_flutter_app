@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+
+import 'package:udangtan_flutter_app/features/pet/widgets/pet_traits_modal.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_text_styles.dart';
-import 'package:udangtan_flutter_app/shared/widgets/pet_traits_modal.dart';
 import 'package:udangtan_flutter_app/shared/widgets/tag_button.dart';
 
 class PetCard extends StatelessWidget {
@@ -21,7 +22,7 @@ class PetCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
             color: AppColors.white,
-            border: Border.all(color: AppColors.cardBorder, width: 2),
+            border: Border.all(color: AppColors.borderLight, width: 2),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,8 +39,8 @@ class PetCard extends StatelessWidget {
 
   Widget _buildImageSection() {
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.only(
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.only(
           topLeft: Radius.circular(13),
           topRight: Radius.circular(13),
         ),
@@ -74,7 +75,7 @@ class PetCard extends StatelessWidget {
         Text('${pet.name} ${pet.age}', style: AppTextStyles.petName),
         Row(
           children: [
-            const Icon(Icons.location_on, color: AppColors.cardText, size: 14),
+            const Icon(Icons.location_on, color: AppColors.textWhite, size: 14),
             Text(
               '${pet.location} · ${pet.distance}',
               style: AppTextStyles.petInfo,
@@ -84,7 +85,7 @@ class PetCard extends StatelessWidget {
         const SizedBox(height: 5),
         Row(
           children: [
-            const Icon(Icons.pets, color: AppColors.cardText, size: 14),
+            const Icon(Icons.pets, color: AppColors.textWhite, size: 14),
             const SizedBox(width: 4),
             Text(pet.type, style: AppTextStyles.petInfo),
           ],
@@ -109,8 +110,8 @@ class PetCard extends StatelessWidget {
                   var isLast = index == pet.tags.length - 1;
                   var isMoreTag = tag.startsWith('+');
 
-                  Color tagColor = AppColors.tagGrey;
-                  if (index == 1) tagColor = AppColors.tagBlue;
+                  Color tagColor = AppColors.tagBackground;
+                  if (index == 1) tagColor = AppColors.primaryWithOpacity10;
                   if (isLast) tagColor = AppColors.transparent;
 
                   return Row(

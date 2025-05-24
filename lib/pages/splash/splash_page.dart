@@ -23,19 +23,19 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   }
 
   Future<void> _startSplashSequence() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 200));
     if (!mounted) return;
     setState(() {
       _showText1 = true;
     });
 
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
     setState(() {
       _showText2 = true;
     });
 
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
     setState(() {
       _showText3 = true;
@@ -46,13 +46,13 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       _imageOpacity = 1.0;
     });
 
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
     setState(() {
       _secondImageOpacity = 1.0;
     });
 
-    await Future.delayed(const Duration(seconds: 4));
+    await Future.delayed(const Duration(milliseconds: 1200));
     if (!mounted) return;
     if (context.mounted) {
       await Navigator.pushReplacementNamed(context, '/welcome');
@@ -70,7 +70,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
             /// 텍스트들 (순차 Fade)
             AnimatedOpacity(
               opacity: _showText1 ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 800),
+              duration: const Duration(milliseconds: 400),
               child: const Text(
                 '친구찾기',
                 style: TextStyle(fontSize: 22, color: Color(0xFF999999)),
@@ -79,7 +79,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
             const SizedBox(height: 8),
             AnimatedOpacity(
               opacity: _showText2 ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 800),
+              duration: const Duration(milliseconds: 400),
               child: const Text(
                 '이제 반려동물도 시작해요',
                 style: TextStyle(
@@ -92,7 +92,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
             const SizedBox(height: 8),
             AnimatedOpacity(
               opacity: _showText3 ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 800),
+              duration: const Duration(milliseconds: 400),
               child: const Text(
                 '오늘부터 PetFriend',
                 style: TextStyle(
@@ -110,7 +110,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
               children: [
                 AnimatedOpacity(
                   opacity: _imageOpacity,
-                  duration: const Duration(seconds: 2),
+                  duration: const Duration(milliseconds: 800),
                   curve: Curves.easeInOut,
                   child: Image.asset(
                     'assets/images/splash-image.png',
@@ -121,7 +121,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                 ),
                 AnimatedOpacity(
                   opacity: _secondImageOpacity,
-                  duration: const Duration(seconds: 2),
+                  duration: const Duration(milliseconds: 800),
                   curve: Curves.easeInOut,
                   child: Image.asset(
                     'assets/images/splash-image2.png',

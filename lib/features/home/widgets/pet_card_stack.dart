@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
+import 'package:udangtan_flutter_app/features/home/widgets/pet_card.dart';
+import 'package:udangtan_flutter_app/features/home/widgets/swipe_indicator.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
-import 'package:udangtan_flutter_app/shared/widgets/pet_card.dart';
-import 'package:udangtan_flutter_app/shared/widgets/swipe_indicator.dart';
 
 class PetCardStack extends StatefulWidget {
   const PetCardStack({super.key, required this.onSwipe});

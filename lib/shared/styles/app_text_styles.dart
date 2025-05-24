@@ -6,40 +6,40 @@ class AppTextStyles {
   static const TextStyle appBarTitle = TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.bold,
-    color: Colors.black,
+    color: AppColors.appBarTitle,
   );
 
   // Pet Card
   static const TextStyle cardTitle = TextStyle(
     fontSize: 32,
     fontWeight: FontWeight.bold,
-    color: Colors.white,
+    color: AppColors.textWhite,
   );
 
   static const TextStyle cardSubtitle = TextStyle(
     fontSize: 18,
-    color: Colors.white,
+    color: AppColors.textWhite,
   );
 
   static const TextStyle cardDistance = TextStyle(
     fontSize: 14,
-    color: Colors.white,
+    color: AppColors.textWhite,
   );
 
   static const TextStyle cardDescription = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w500,
-    color: Colors.white,
+    color: AppColors.textWhite,
   );
 
   static const TextStyle petName = TextStyle(
-    color: AppColors.cardText,
+    color: AppColors.textWhite,
     fontSize: 24,
     fontWeight: FontWeight.bold,
   );
 
   static const TextStyle petInfo = TextStyle(
-    color: AppColors.cardText,
+    color: AppColors.textWhite,
     fontSize: 14,
   );
 
@@ -48,7 +48,7 @@ class AppTextStyles {
   static const TextStyle tagText = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w500,
-    color: Colors.black,
+    color: AppColors.textPrimary,
   );
 
   // Buttons

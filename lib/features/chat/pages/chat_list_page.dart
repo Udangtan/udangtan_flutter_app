@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+
+import 'package:udangtan_flutter_app/features/chat/pages/chat_detail_page.dart';
 import 'package:udangtan_flutter_app/models/chat_room.dart';
-import 'package:udangtan_flutter_app/pages/chat/chat_detail_page.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
+import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
 import 'package:udangtan_flutter_app/shared/widgets/common_bottom_navigation.dart';
 
 class ChatListPage extends StatelessWidget {
@@ -18,13 +20,29 @@ class ChatListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     var chatRooms = ChatRoom.sampleChatRooms;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF5F5F5),
+        appBar: const CommonAppBar(
+          title: '채팅',
+          automaticallyImplyLeading: false,
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 itemCount: chatRooms.length,
@@ -40,31 +58,12 @@ class ChatListPage extends StatelessWidget {
                 },
               ),
             ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: CommonBottomNavigation(
-        currentIndex: currentNavIndex,
-        onTap: onNavTap,
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: const Row(
-        children: [
-          Text(
-            '채팅 목록',
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
           ),
-          Spacer(),
-        ],
+        ),
+        bottomNavigationBar: CommonBottomNavigation(
+          currentIndex: currentNavIndex,
+          onTap: onNavTap,
+        ),
       ),
     );
   }
