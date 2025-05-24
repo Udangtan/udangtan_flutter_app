@@ -14,12 +14,6 @@ Future main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   runApp(const MyApp());
-  // await Future.delayed(const Duration(milliseconds: 2000), () {
-  //   if (kDebugMode) {
-  //     print('success');
-  //   }
-  //   FlutterNativeSplash.remove();
-  // });
 }
 
 class MyApp extends StatelessWidget {
@@ -44,18 +38,6 @@ class MyApp extends StatelessWidget {
         '/onboarding': (context) => const OnboardingPage(),
         '/onboarding-success': (context) => const OnboardingSuccessPage(),
       },
-
-      //home: Scaffold(
-      //  appBar: AppBar(title: const Text('Flutter Demo Home Page')),
-      //  body: Center(
-      //    child: Image.asset(
-      //      'assets/images/splash-image.png',
-      //      width: 200, // 원하는 크기로 설정 가능
-      //      height: 200,
-      //      fit: BoxFit.contain,
-      //    ),
-      //  ),
-      //),
     );
   }
 }

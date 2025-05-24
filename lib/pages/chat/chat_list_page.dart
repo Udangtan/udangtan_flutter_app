@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:udangtan_flutter_app/features/chat/pages/chat_detail_page.dart';
 import 'package:udangtan_flutter_app/models/chat_room.dart';
+import 'package:udangtan_flutter_app/pages/chat/chat_detail_page.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
 import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
 import 'package:udangtan_flutter_app/shared/widgets/common_bottom_navigation.dart';

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'package:udangtan_flutter_app/features/chat/pages/chat_list_page.dart';
-import 'package:udangtan_flutter_app/features/profile/pages/profile_page.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
+import 'package:udangtan_flutter_app/pages/chat/chat_list_page.dart';
 import 'package:udangtan_flutter_app/pages/home/home_page.dart';
+import 'package:udangtan_flutter_app/pages/profile/profile_page.dart';
 import 'package:udangtan_flutter_app/pages/snacks/snacks_page.dart';
 
 class MainNavigation extends StatefulWidget {

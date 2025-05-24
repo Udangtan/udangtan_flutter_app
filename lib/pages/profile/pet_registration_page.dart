@@ -4,8 +4,8 @@ import 'package:udangtan_flutter_app/features/pet/widgets/pet_basic_info_step.da
 import 'package:udangtan_flutter_app/features/pet/widgets/pet_gender_selection_step.dart';
 import 'package:udangtan_flutter_app/features/pet/widgets/pet_personality_selection_step.dart';
 import 'package:udangtan_flutter_app/features/pet/widgets/pet_type_selection_step.dart';
-import 'package:udangtan_flutter_app/features/profile/pages/pet_registration_complete_page.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
+import 'package:udangtan_flutter_app/pages/profile/pet_registration_complete_page.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_styles.dart';
 import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';

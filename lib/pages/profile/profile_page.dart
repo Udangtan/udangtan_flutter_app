@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:udangtan_flutter_app/features/profile/pages/pet_registration_page.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
+import 'package:udangtan_flutter_app/pages/profile/pet_registration_page.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_styles.dart';
 import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
