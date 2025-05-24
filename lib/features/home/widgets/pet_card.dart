@@ -21,14 +21,14 @@ class PetCard extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
-            color: AppColors.white,
-            border: Border.all(color: AppColors.borderLight, width: 2),
+            color: Colors.white,
+            // color: AppColors.white,
+            // border: Border.all(color: AppColors.borderLight, width: 2),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(flex: 3, child: _buildImageSection()),
-              _buildFeaturesSection(context),
+              Expanded(flex: 3, child: _buildImageAndFeaturesSection(context)),
               _buildActionSection(),
             ],
           ),
@@ -37,36 +37,66 @@ class PetCard extends StatelessWidget {
     );
   }
 
-  Widget _buildImageSection() {
-    return Container(
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(13),
-          topRight: Radius.circular(13),
-        ),
-        color: AppColors.cardBackground,
-      ),
-      width: double.infinity,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          const Positioned(
-            top: 30,
-            child: Text('Recording Puppy Life', style: AppTextStyles.cardTitle),
-          ),
-          Center(
-            child: Image.asset(
-              pet.imageUrl,
-              errorBuilder:
-                  (context, error, stackTrace) =>
-                      const Icon(Icons.pets, size: 150, color: Colors.white70),
+  Widget _buildImageAndFeaturesSection(BuildContext context) {
+    return Padding(
+      // padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Container(
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(13),
+              topRight: Radius.circular(13),
             ),
+            color: AppColors.cardBackground,
           ),
-          Positioned(bottom: 10, left: 10, child: _buildPetInfo()),
-        ],
+          width: double.infinity,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Image.asset(
+                  pet.imageUrl,
+                  // fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                  const Icon(Icons.pets, size: 150, color: Colors.white70),
+                ),
+              ),
+
+              Positioned.fill(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.center,
+                      colors: [
+                        Colors.black54,
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(15),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Spacer(),
+                    _buildPetInfo(),
+                    const SizedBox(height: 16),
+                    _buildFeaturesSection(context),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
+
 
   Widget _buildPetInfo() {
     return Column(
@@ -95,8 +125,12 @@ class PetCard extends StatelessWidget {
   }
 
   Widget _buildFeaturesSection(BuildContext context) {
-    return Padding(
+    return Container(
       padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -141,32 +175,46 @@ class PetCard extends StatelessWidget {
 
   Widget _buildActionSection() {
     return Padding(
-      padding: const EdgeInsets.all(10),
+      // padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
       child: Row(
         children: [
           Expanded(
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryLight,
-                foregroundColor: AppColors.primary,
+            child: SizedBox(
+              height: 50,
+              child: ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE9D7F7),
+                  foregroundColor: const Color(0xFF9E4BDE),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text('괜찮아요', style: AppTextStyles.buttonText),
               ),
-              child: const Text('괜찮아요', style: AppTextStyles.buttonText),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.white,
+            child: SizedBox(
+              height: 50,
+              child: ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF9E4BDE),
+                  foregroundColor: AppColors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text('간식주기', style: AppTextStyles.buttonText),
               ),
-              child: const Text('간식주기', style: AppTextStyles.buttonText),
             ),
           ),
         ],
       ),
     );
   }
+
 }
