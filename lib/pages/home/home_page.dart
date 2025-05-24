@@ -27,14 +27,15 @@ class _HomePageState extends State<HomePage> {
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F5F5),
+        // backgroundColor: const Color(0xFFF5F5F5),
+        backgroundColor: const Color(0xFFFFFFFF),
         appBar: const CommonAppBar(
           title: '홈',
           automaticallyImplyLeading: false,
         ),
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
             child: _buildCardStack(),
           ),
         ),
