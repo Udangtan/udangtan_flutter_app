@@ -119,7 +119,22 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               itemCount: _messages.length,
               itemBuilder: (context, index) {
                 var message = _messages[index];
-                return _buildMessageBubble(message);
+
+                bool showTime = true;
+                if (index < _messages.length - 1) {
+                  var next = _messages[index + 1];
+                  var sameMinute =
+                      message.timestamp.year == next.timestamp.year &&
+                      message.timestamp.month == next.timestamp.month &&
+                      message.timestamp.day == next.timestamp.day &&
+                      message.timestamp.hour == next.timestamp.hour &&
+                      message.timestamp.minute == next.timestamp.minute;
+                  if (sameMinute) {
+                    showTime = false;
+                  }
+                }
+
+                return _buildMessageBubble(message, showTime);
               },
             ),
           ),
@@ -129,7 +144,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     );
   }
 
-  Widget _buildMessageBubble(ChatMessage message) {
+  Widget _buildMessageBubble(ChatMessage message, bool showTime) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -158,18 +173,22 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             ),
             const SizedBox(width: 8),
           ],
-
-          Flexible(
-            child: Column(
-              crossAxisAlignment:
-                  message.isFromMe
-                      ? CrossAxisAlignment.end
-                      : CrossAxisAlignment.start,
-              children: [
-                Container(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (message.isFromMe && showTime) ...[
+                Text(
+                  message.formattedTime,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                ),
+                const SizedBox(width: 6), // ⬅️ 말풍선과 8px 간격
+              ],
+              Flexible(
+                child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
+                    horizontal: 12,
+                    vertical: 8,
                   ),
                   decoration: BoxDecoration(
                     color:
@@ -182,23 +201,24 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                             ? null
                             : Border.all(color: Colors.grey.shade300),
                   ),
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.7,
+                  ),
                   child: Text(
                     message.message,
                     style: const TextStyle(color: Colors.black, fontSize: 16),
                   ),
                 ),
-
-                const SizedBox(height: 4),
-
+              ),
+              if (!message.isFromMe && showTime) ...[
+                const SizedBox(width: 6),
                 Text(
                   message.formattedTime,
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                 ),
               ],
-            ),
+            ],
           ),
-
-          if (message.isFromMe) const SizedBox(width: 40),
         ],
       ),
     );
