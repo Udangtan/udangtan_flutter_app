@@ -65,6 +65,14 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     });
   }
 
+  bool _isSameMinute(DateTime a, DateTime b) {
+    return a.year == b.year &&
+        a.month == b.month &&
+        a.day == b.day &&
+        a.hour == b.hour &&
+        a.minute == b.minute;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -121,22 +129,22 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               itemCount: _messages.length,
               itemBuilder: (context, index) {
                 var message = _messages[index];
+                ChatMessage? prevMessage =
+                    index > 0 ? _messages[index - 1] : null;
 
                 bool showTime = true;
                 if (index < _messages.length - 1) {
                   var next = _messages[index + 1];
-                  var sameMinute =
-                      message.timestamp.year == next.timestamp.year &&
-                      message.timestamp.month == next.timestamp.month &&
-                      message.timestamp.day == next.timestamp.day &&
-                      message.timestamp.hour == next.timestamp.hour &&
-                      message.timestamp.minute == next.timestamp.minute;
+                  var sameMinute = _isSameMinute(
+                    message.timestamp,
+                    next.timestamp,
+                  );
                   if (sameMinute) {
                     showTime = false;
                   }
                 }
 
-                return _buildMessageBubble(message, showTime);
+                return _buildMessageBubble(message, showTime, prevMessage);
               },
             ),
           ),
@@ -146,84 +154,148 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     );
   }
 
-  Widget _buildMessageBubble(ChatMessage message, bool showTime) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment:
-            message.isFromMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (!message.isFromMe) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(15),
+  Widget _buildMessageBubble(
+    ChatMessage message,
+    bool showTime,
+    ChatMessage? previousMessage,
+  ) {
+    var isFromMe = message.isFromMe;
+
+    var shouldShowAvatar =
+        !isFromMe &&
+        (previousMessage == null ||
+            previousMessage.senderId != message.senderId ||
+            !_isSameMinute(previousMessage.timestamp, message.timestamp));
+
+    if (isFromMe) {
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (showTime) ...[
+              Text(
+                message.formattedTime,
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              ),
+              const SizedBox(width: 8),
+            ],
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.7,
+              ),
               child: Container(
-                width: 30,
-                height: 30,
-                color: AppColors.cardBackground,
-                child: Image.asset(
-                  widget.chatRoom.otherUser.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder:
-                      (context, error, stackTrace) => const Icon(
-                        Icons.pets,
-                        size: 15,
-                        color: Colors.white70,
-                      ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE1BEE7),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Text(
+                  message.message,
+                  style: const TextStyle(fontSize: 16, color: Colors.black),
                 ),
               ),
             ),
-            const SizedBox(width: 8),
           ],
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (message.isFromMe && showTime) ...[
-                Text(
-                  message.formattedTime,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                ),
-                const SizedBox(width: 6), // ⬅️ 말풍선과 8px 간격
-              ],
-              Flexible(
+        ),
+      );
+    } else {
+      return Container(
+        margin: EdgeInsets.symmetric(
+          vertical: shouldShowAvatar ? 6 : 2,
+          horizontal: 8,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (shouldShowAvatar) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color:
-                        message.isFromMe
-                            ? const Color(0xFFE1BEE7)
-                            : Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    border:
-                        message.isFromMe
-                            ? null
-                            : Border.all(color: Colors.grey.shade300),
-                  ),
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.7,
-                  ),
-                  child: Text(
-                    message.message,
-                    style: const TextStyle(color: Colors.black, fontSize: 16),
+                  width: 36,
+                  height: 36,
+                  color: AppColors.cardBackground,
+                  child: Image.asset(
+                    widget.chatRoom.otherUser.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder:
+                        (context, error, stackTrace) => const Icon(
+                          Icons.pets,
+                          size: 15,
+                          color: Colors.white70,
+                        ),
                   ),
                 ),
               ),
-              if (!message.isFromMe && showTime) ...[
-                const SizedBox(width: 6),
-                Text(
-                  message.formattedTime,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              const SizedBox(width: 8),
+            ] else ...[
+              const SizedBox(width: 44),
+            ],
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (shouldShowAvatar) ...[
+                  Text(
+                    widget.chatRoom.otherUser.name,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                ],
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.7,
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Text(
+                          message.message,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (showTime) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        message.formattedTime,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
-            ],
-          ),
-        ],
-      ),
-    );
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Widget _buildMessageInput() {
