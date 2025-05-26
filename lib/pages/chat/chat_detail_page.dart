@@ -191,9 +191,14 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   horizontal: 12,
                   vertical: 8,
                 ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE1BEE7),
-                  borderRadius: BorderRadius.circular(18),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE1BEE7),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(18),
+                    topRight: Radius.circular(2),
+                    bottomLeft: Radius.circular(18),
+                    bottomRight: Radius.circular(18),
+                  ),
                 ),
                 child: Text(
                   message.message,
@@ -266,7 +271,12 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                         ),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(2),
+                            topRight: Radius.circular(18),
+                            bottomLeft: Radius.circular(18),
+                            bottomRight: Radius.circular(18),
+                          ),
                           border: Border.all(color: Colors.grey.shade300),
                         ),
                         child: Text(
