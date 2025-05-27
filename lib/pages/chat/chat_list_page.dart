@@ -29,34 +29,30 @@ class ChatListPage extends StatelessWidget {
           automaticallyImplyLeading: false,
         ),
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: chatRooms.length,
+              separatorBuilder:
+                  (context, index) => const Divider(
+                    height: 0,
+                    color: Color.fromARGB(255, 255, 255, 255),
                   ),
-                ],
-              ),
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                itemCount: chatRooms.length,
-                separatorBuilder:
-                    (context, index) => const Divider(
-                      height: 1,
-                      color: Color(0xFFE0E0E0),
-                      indent: 76,
-                    ),
-                itemBuilder: (context, index) {
-                  var chatRoom = chatRooms[index];
-                  return _buildChatRoomItem(context, chatRoom);
-                },
-              ),
+              itemBuilder: (context, index) {
+                var chatRoom = chatRooms[index];
+                return _buildChatRoomItem(context, chatRoom);
+              },
             ),
           ),
         ),
