@@ -397,13 +397,12 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                 ),
                 child: TextField(
                   controller: _messageController,
-                  focusNode: _textFieldFocusNode, // FocusNode 추가
+                  focusNode: _textFieldFocusNode,
                   decoration: const InputDecoration(
                     hintText: '메시지를 입력하세요...',
                     border: InputBorder.none,
                   ),
                   onSubmitted: (_) => _sendMessage(),
-                  // 텍스트가 변경될 때도 스크롤 (옵션)
                   onTap: () => _scrollToBottomWithDelay(),
                 ),
               ),
