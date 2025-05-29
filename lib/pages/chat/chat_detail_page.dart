@@ -101,7 +101,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   }
 
   void _scrollToBottomWithDelay() {
-    Future.delayed(const Duration(milliseconds: 100), () {
+    Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted && _scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
