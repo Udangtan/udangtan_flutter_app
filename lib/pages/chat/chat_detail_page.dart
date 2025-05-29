@@ -15,23 +15,60 @@ class ChatDetailPage extends StatefulWidget {
   State<ChatDetailPage> createState() => _ChatDetailPageState();
 }
 
-class _ChatDetailPageState extends State<ChatDetailPage> {
+class _ChatDetailPageState extends State<ChatDetailPage>
+    with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _textFieldFocusNode = FocusNode();
+
   List<ChatMessage> _messages = [];
+  bool _isKeyboardVisible = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _messages = ChatMessage.getSampleMessages(widget.chatRoom.id);
+
+    _textFieldFocusNode.addListener(_onFocusChange);
+
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _messageController.dispose();
     _scrollController.dispose();
+    _textFieldFocusNode.removeListener(_onFocusChange);
+    _textFieldFocusNode.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+
+    var bottomInset = View.of(context).viewInsets.bottom;
+    var newKeyboardVisible = bottomInset > 0;
+
+    if (newKeyboardVisible != _isKeyboardVisible) {
+      setState(() {
+        _isKeyboardVisible = newKeyboardVisible;
+      });
+
+      // 키보드가 올라올 때 스크롤
+      if (newKeyboardVisible) {
+        _scrollToBottomWithDelay();
+      }
+    }
+  }
+
+  // 텍스트 필드 포커스 변화 감지
+  void _onFocusChange() {
+    if (_textFieldFocusNode.hasFocus) {
+      _scrollToBottomWithDelay();
+    }
   }
 
   void _sendMessage() {
@@ -54,11 +91,31 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  void _scrollToBottomWithDelay() {
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted && _scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
         );
       }
@@ -77,6 +134,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
+      resizeToAvoidBottomInset: true,
       appBar: CommonAppBar(
         title: widget.chatRoom.otherUser.name,
         actions: [
@@ -339,11 +397,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 ),
                 child: TextField(
                   controller: _messageController,
+                  focusNode: _textFieldFocusNode,
                   decoration: const InputDecoration(
                     hintText: '메시지를 입력하세요...',
                     border: InputBorder.none,
                   ),
                   onSubmitted: (_) => _sendMessage(),
+                  onTap: () => _scrollToBottomWithDelay(),
                 ),
               ),
             ),
