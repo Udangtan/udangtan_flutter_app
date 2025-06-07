@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
 import 'package:udangtan_flutter_app/pages/chat/chat_list_page.dart';
 import 'package:udangtan_flutter_app/pages/home/home_page.dart';
+import 'package:udangtan_flutter_app/pages/map/map_page.dart';
 import 'package:udangtan_flutter_app/pages/profile/profile_page.dart';
 import 'package:udangtan_flutter_app/pages/snacks/snacks_page.dart';
 
@@ -53,6 +54,8 @@ class _MainNavigationState extends State<MainNavigation> {
         );
       case 3:
         return ProfilePage(currentNavIndex: _currentIndex, onNavTap: _onNavTap);
+      case 4:
+        return MapPage(currentNavIndex: _currentIndex, onNavTap: _onNavTap);
       default:
         return HomePage(
           currentNavIndex: _currentIndex,
