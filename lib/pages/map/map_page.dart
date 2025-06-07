@@ -20,42 +20,40 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
+  static const String markerImageUrl =
+      'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png';
+
   @override
   Widget build(BuildContext context) {
     Set<Marker> markers = {
       Marker(
         markerId: '1',
         latLng: LatLng(37.494403809142675, 126.95430389533207),
-        markerImageSrc:
-            'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png',
+        markerImageSrc: markerImageUrl,
         height: 35,
       ),
       Marker(
         markerId: '2',
         latLng: LatLng(37.495466763596, 126.95370390897536),
-        markerImageSrc:
-            'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png',
+        markerImageSrc: markerImageUrl,
         height: 35,
       ),
       Marker(
         markerId: '3',
         latLng: LatLng(37.49515200825655, 126.95525333080086),
-        markerImageSrc:
-            'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png',
+        markerImageSrc: markerImageUrl,
         height: 35,
       ),
       Marker(
         markerId: '4',
         latLng: LatLng(37.49709773083798, 126.95407608342305),
-        markerImageSrc:
-            'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png',
+        markerImageSrc: markerImageUrl,
         height: 35,
       ),
       Marker(
         markerId: '5',
         latLng: LatLng(37.496286294351506, 126.9527308805763),
-        markerImageSrc:
-            'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png',
+        markerImageSrc: markerImageUrl,
         height: 35,
       ),
     };
