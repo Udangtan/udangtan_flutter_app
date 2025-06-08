@@ -47,6 +47,7 @@ class CommonBottomNavigation extends StatelessWidget {
       {'icon': Icons.favorite, 'label': '간식함'},
       {'icon': Icons.chat, 'label': '채팅'},
       {'icon': Icons.person, 'label': '마이'},
+      {'icon': Icons.location_on, 'label': '지도'},
     ];
 
     return items
