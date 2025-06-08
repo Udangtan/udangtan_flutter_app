@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
+import 'package:udangtan_flutter_app/services/pet_service.dart';
+import 'package:udangtan_flutter_app/services/supabase_service.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
-import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
-import 'package:udangtan_flutter_app/shared/widgets/common_bottom_navigation.dart';
 
 class SnacksPage extends StatefulWidget {
   const SnacksPage({
@@ -20,240 +20,232 @@ class SnacksPage extends StatefulWidget {
   State<SnacksPage> createState() => _SnacksPageState();
 }
 
-class _SnacksPageState extends State<SnacksPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  // 샘플 받은 친구들 데이터 (나중에 실제 데이터로 교체)
-  List<Pet> get receivedPets => Pet.samplePets.take(2).toList();
+class _SnacksPageState extends State<SnacksPage> {
+  List<Pet> _likedPets = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _loadLikedPets();
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+  Future<void> _loadLikedPets() async {
+    try {
+      var user = SupabaseService.client.auth.currentUser;
+      if (user != null) {
+        var likedPets = await PetService.getLikedPets(user.id);
+        setState(() {
+          _likedPets = likedPets;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _likedPets = [];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _likedPets = [];
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF5F5F5),
-        appBar: const CommonAppBar(
-          title: '간식함',
-          automaticallyImplyLeading: false,
+    return Scaffold(
+      backgroundColor: AppColors.scaffoldBackground,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          '간식함',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              _buildTabSection(),
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildPetGrid(
-                      receivedPets,
-                      '아직 받은 간식이 없어요',
-                      '친구들이 간식을 보내주기를 기다려보세요!',
+        centerTitle: true,
+        automaticallyImplyLeading: false,
+      ),
+      body:
+          _isLoading
+              ? const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                ),
+              )
+              : RefreshIndicator(
+                onRefresh: _loadLikedPets,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '간식',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const Text(
+                          '보낸 친구들',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _likedPets.isEmpty
+                            ? _buildEmptyState()
+                            : _buildPetGrid(),
+                      ],
                     ),
-                    _buildPetGrid(
-                      widget.likedPets,
-                      '아직 간식을 준 친구가 없어요',
-                      '홈에서 친구들에게 간식을 주어보세요!',
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ],
-          ),
-        ),
-        bottomNavigationBar: CommonBottomNavigation(
-          currentIndex: widget.currentNavIndex,
-          onTap: widget.onNavTap,
-        ),
-      ),
     );
   }
 
-  Widget _buildTabSection() {
-    return Container(
-      margin: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 20),
-          TabBar(
-            controller: _tabController,
-            indicatorColor: Colors.purple,
-            indicatorWeight: 3,
-            indicatorSize: TabBarIndicatorSize.label,
-            labelColor: Colors.purple,
-            unselectedLabelColor: Colors.grey,
-            labelStyle: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+  Widget _buildEmptyState() {
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.6,
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.favorite_border, size: 80, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              '새로운 친구들을 만나보세요',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-            unselectedLabelStyle: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.normal,
-            ),
-            tabs: const [Tab(text: '받은 친구들'), Tab(text: '보낸 친구들')],
-          ),
-          const SizedBox(height: 20),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPetGrid(
-    List<Pet> pets,
-    String emptyTitle,
-    String emptySubtitle,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child:
-          pets.isEmpty
-              ? _buildEmptyState(emptyTitle, emptySubtitle)
-              : _buildPetGridView(pets),
-    );
-  }
-
-  Widget _buildEmptyState(String title, String subtitle) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.pets, size: 80, color: Colors.grey),
-          const SizedBox(height: 16),
-          Text(title, style: const TextStyle(fontSize: 18, color: Colors.grey)),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: const TextStyle(fontSize: 14, color: Colors.grey),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPetGridView(List<Pet> pets) {
+  Widget _buildPetGrid() {
     return GridView.builder(
-      padding: const EdgeInsets.only(top: 20),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
+        childAspectRatio: 0.75,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.75,
       ),
-      itemCount: pets.length,
+      itemCount: _likedPets.length,
       itemBuilder: (context, index) {
-        return _buildPetGridItem(pets[index]);
+        return _buildPetCard(_likedPets[index]);
       },
     );
   }
 
-  Widget _buildPetGridItem(Pet pet) {
+  Widget _buildPetCard(Pet pet) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              pet.imageUrl,
-              width: double.infinity,
-              height: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder:
-                  (context, error, stackTrace) => Container(
-                    color: AppColors.cardBackground,
-                    child: const Center(
-                      child: Icon(Icons.pets, size: 60, color: Colors.white70),
-                    ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 메인 이미지
+            pet.profileImages.isNotEmpty
+                ? Image.network(
+                  pet.profileImages.first,
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (context, error, stackTrace) => Container(
+                        color: Colors.grey[200],
+                        child: const Center(
+                          child: Icon(Icons.pets, size: 40, color: Colors.grey),
+                        ),
+                      ),
+                )
+                : Container(
+                  color: Colors.grey[200],
+                  child: const Center(
+                    child: Icon(Icons.pets, size: 40, color: Colors.grey),
                   ),
-            ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.6),
-                ],
-                stops: const [0.6, 1.0],
-              ),
-            ),
-          ),
-          Positioned(
-            top: 12,
-            left: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                ),
+
+            // 그라데이션 오버레이
+            Container(
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '${pet.name} ${pet.age}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.6),
+                  ],
+                  stops: const [0.5, 1.0],
                 ),
               ),
             ),
-          ),
-          Positioned(
-            bottom: 12,
-            right: 12,
-            child: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
+
+            // 좋아요 아이콘 (우상단)
+            const Positioned(
+              top: 12,
+              right: 12,
+              child: Icon(Icons.favorite, color: Colors.white, size: 20),
+            ),
+
+            // 하단 정보
+            Positioned(
+              bottom: 12,
+              left: 12,
+              right: 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${pet.name}, ${pet.age}세',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 4),
+                  if (pet.personality.isNotEmpty)
+                    Text(
+                      pet.personality.first,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                 ],
               ),
-              child: const Icon(Icons.favorite, color: Colors.red, size: 20),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

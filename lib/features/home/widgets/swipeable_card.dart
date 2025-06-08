@@ -55,7 +55,15 @@ class _SwipeableCardState extends State<SwipeableCard> {
           angle: _dragDistance / 1000,
           child: Stack(
             children: [
-              PetCard(pet: widget.pet),
+              PetCard(
+                pet: widget.pet,
+                transform:
+                    Matrix4.identity()
+                      ..translate(_dragDistance, 0.0)
+                      ..rotateZ(_dragDistance / 1000),
+                isOnTop: true,
+                onSwipe: () => widget.onSwipe(widget.pet, SwipeResult.approve),
+              ),
               if (_isDragging) _buildSwipeIndicator(screenWidth),
             ],
           ),

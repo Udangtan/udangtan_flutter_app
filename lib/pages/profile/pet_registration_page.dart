@@ -27,6 +27,18 @@ class _PetRegistrationPageState extends State<PetRegistrationPage> {
   String _name = '';
   String? _selectedAgeRange;
   final List<String> _selectedPersonalities = [];
+  String? _breed;
+  String? _age;
+  String? _gender;
+  String? _weight;
+  String? _size;
+  String? _activityLevel;
+  String? _location;
+  String? _district;
+  final bool _isNeutered = false;
+  String? _vaccinationStatus;
+  String? _description;
+  final List<String> _uploadedImages = [];
 
   @override
   void dispose() {
@@ -77,21 +89,23 @@ class _PetRegistrationPageState extends State<PetRegistrationPage> {
     if (!_canProceedToNext()) return;
 
     var newPet = Pet(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      ownerId: 'temp_owner_id', // This should be replaced with actual user ID
       name: _name,
-      age: _getAgeFromRange(_selectedAgeRange!),
-      location: '서울 강동구',
-      distance: '0m',
-      type: _selectedType!,
-      imageUrl: '',
-      tags: _selectedPersonalities.take(2).map((p) => '🐾 $p').toList(),
-      allTags: _selectedPersonalities.map((p) => '🐾 $p').toList(),
-      description: '$_name는 ${_selectedPersonalities.join(', ')} 성격이에요!',
-      gender: _selectedGender,
-      breed: '품종 미등록',
-      personalities: _selectedPersonalities,
-      ageRange: _selectedAgeRange,
-      isMyPet: true,
+      species: _selectedType ?? 'unknown',
+      breed: _breed ?? '믹스',
+      age: int.tryParse(_age ?? '1') ?? 1,
+      gender: _gender ?? '알 수 없음',
+      profileImages: _uploadedImages,
+      personality: _selectedPersonalities,
+      description: _description,
+      isNeutered: _isNeutered,
+      isVaccinated: _vaccinationStatus == '완료',
+      weight: double.tryParse(_weight ?? ''),
+      size: _size,
+      activityLevel: _activityLevel,
+      locationCity: _location,
+      locationDistrict: _district,
+      isActive: true,
     );
 
     var result = await Navigator.push<bool>(
@@ -103,21 +117,6 @@ class _PetRegistrationPageState extends State<PetRegistrationPage> {
 
     if (result == true && mounted) {
       Navigator.pop(context, newPet);
-    }
-  }
-
-  int _getAgeFromRange(String ageRange) {
-    switch (ageRange) {
-      case '1살 미만':
-        return 0;
-      case '1-3살':
-        return 2;
-      case '4-7살':
-        return 5;
-      case '8살 이상':
-        return 10;
-      default:
-        return 3;
     }
   }
 

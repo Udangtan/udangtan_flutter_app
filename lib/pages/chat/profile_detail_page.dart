@@ -32,7 +32,6 @@ class ProfileDetailPage extends StatelessWidget {
               ),
             ),
           ),
-
           Align(
             alignment: Alignment.bottomCenter,
             child: FractionallySizedBox(
@@ -85,9 +84,7 @@ class ProfileDetailPage extends StatelessWidget {
                               color: Colors.grey,
                             ),
                           ),
-
                           const SizedBox(height: 24),
-
                           const Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -138,9 +135,7 @@ class ProfileDetailPage extends StatelessWidget {
                               ),
                             ],
                           ),
-
                           const SizedBox(height: 24),
-
                           const Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -199,7 +194,6 @@ class ProfileDetailPage extends StatelessWidget {
               ),
             ),
           ),
-
           Positioned(
             top:
                 screenHeight * (1 - bottomSheetMaxHeightRatio) -
@@ -212,16 +206,35 @@ class ProfileDetailPage extends StatelessWidget {
                   width: imageSize,
                   height: imageSize,
                   color: Colors.white,
-                  child: Image.asset(
-                    pet.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder:
-                        (context, error, stackTrace) => const Icon(
-                          Icons.pets,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                  ),
+                  child:
+                      pet.profileImages.isNotEmpty
+                          ? Image.network(
+                            pet.profileImages.first,
+                            width: 120,
+                            height: 120,
+                            fit: BoxFit.cover,
+                            errorBuilder:
+                                (context, error, stackTrace) => Container(
+                                  width: 120,
+                                  height: 120,
+                                  color: Colors.grey[200],
+                                  child: const Icon(
+                                    Icons.pets,
+                                    size: 60,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                          )
+                          : Container(
+                            width: 120,
+                            height: 120,
+                            color: Colors.grey[200],
+                            child: const Icon(
+                              Icons.pets,
+                              size: 60,
+                              color: Colors.grey,
+                            ),
+                          ),
                 ),
               ),
             ),

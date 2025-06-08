@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
-import 'package:udangtan_flutter_app/shared/widgets/tag_button.dart';
 
 class PetTraitsModal extends StatelessWidget {
   const PetTraitsModal({super.key, required this.pet});
@@ -47,22 +46,34 @@ class PetTraitsModal extends StatelessWidget {
                 Row(
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(30),
-                      child: Container(
-                        width: 60,
-                        height: 60,
-                        color: AppColors.cardBackground,
-                        child: Image.asset(
-                          pet.imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder:
-                              (context, error, stackTrace) => const Icon(
-                                Icons.pets,
-                                size: 30,
-                                color: Colors.white70,
+                      borderRadius: BorderRadius.circular(8),
+                      child:
+                          pet.profileImages.isNotEmpty
+                              ? Image.network(
+                                pet.profileImages.first,
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                                    (context, error, stackTrace) => Container(
+                                      width: 60,
+                                      height: 60,
+                                      color: Colors.grey[200],
+                                      child: const Icon(
+                                        Icons.pets,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                              )
+                              : Container(
+                                width: 60,
+                                height: 60,
+                                color: Colors.grey[200],
+                                child: const Icon(
+                                  Icons.pets,
+                                  color: Colors.grey,
+                                ),
                               ),
-                        ),
-                      ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -78,10 +89,10 @@ class PetTraitsModal extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '${pet.age}세 · ${pet.location}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.textSecondary,
+                            '${pet.age}세 · ${pet.locationCity ?? ''} ${pet.locationDistrict ?? ''}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
                             ),
                           ),
                         ],
@@ -89,7 +100,10 @@ class PetTraitsModal extends StatelessWidget {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.close, color: AppColors.textSecondary),
+                      icon: const Icon(
+                        Icons.close,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -107,13 +121,31 @@ class PetTraitsModal extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children:
-                      pet.allTags.map((tag) {
-                        Color tagColor = AppColors.tagBackground;
-                        if (tag.contains('활발') || tag.contains('놀이')) {
-                          tagColor = AppColors.primaryWithOpacity10;
-                        }
-                        return TagButton(text: tag, color: tagColor);
-                      }).toList(),
+                      pet.personality
+                          .map(
+                            (tag) => Container(
+                              margin: const EdgeInsets.only(
+                                right: 8,
+                                bottom: 8,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF6C5CE7),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                tag,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
                 ),
               ],
             ),

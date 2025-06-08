@@ -63,7 +63,7 @@ class AppStyles {
     suffixIcon: suffixIcon,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: AppColors.borderLight),
+      borderSide: const BorderSide(color: AppColors.borderLight),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(8),

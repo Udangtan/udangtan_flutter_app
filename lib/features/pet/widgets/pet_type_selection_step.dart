@@ -28,7 +28,7 @@ class PetTypeSelectionStep extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             '반려동물의 종류를 선택해주세요',
             style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
           ),

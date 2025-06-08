@@ -3,23 +3,31 @@ import 'package:flutter/material.dart';
 import 'package:udangtan_flutter_app/features/home/widgets/pet_card.dart';
 import 'package:udangtan_flutter_app/features/home/widgets/swipe_indicator.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
+import 'package:udangtan_flutter_app/services/pet_service.dart';
 
 class PetCardStack extends StatefulWidget {
-  const PetCardStack({super.key, required this.onSwipe});
+  const PetCardStack({
+    super.key,
+    required this.onSwipe,
+    this.onSwipeStateChanged,
+  });
 
   final Function(Pet, SwipeResult) onSwipe;
+  final Function(bool isActive, double opacity)? onSwipeStateChanged;
 
   @override
-  State<PetCardStack> createState() => _PetCardStackState();
+  PetCardStackState createState() => PetCardStackState();
 }
 
-class _PetCardStackState extends State<PetCardStack>
+class PetCardStackState extends State<PetCardStack>
     with TickerProviderStateMixin {
   static const int maxCards = 5;
   List<Pet> _cardStack = [];
+  List<Pet> _allPets = [];
   int _currentIndex = 0;
   double _position = 0;
   bool _isDragging = false;
+  bool _isLoading = true;
 
   late AnimationController _animationController;
   late Animation<double> _cardAnimation;
@@ -41,16 +49,39 @@ class _PetCardStackState extends State<PetCardStack>
     );
   }
 
-  void _initializeCards() {
-    var allPets = Pet.samplePets;
-    _cardStack = List.from(allPets.take(maxCards));
-    _currentIndex = 0;
+  Future<void> _initializeCards() async {
+    try {
+      _allPets = await PetService.getAllPets();
+      if (_allPets.isNotEmpty) {
+        _cardStack = List.from(_allPets.take(maxCards));
+      } else {
+        _allPets = [];
+        _cardStack = [];
+      }
+      _currentIndex = 0;
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      _allPets = [];
+      _cardStack = [];
+      _currentIndex = 0;
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  /// 외부에서 호출할 수 있는 스와이프 시뮬레이션 메소드
+  void simulateSwipe(SwipeResult result) {
+    if (_cardStack.isEmpty || _animationController.isAnimating) return;
+    _handleSwipe(result);
   }
 
   void _handleSwipe(SwipeResult result) {
@@ -64,6 +95,7 @@ class _PetCardStackState extends State<PetCardStack>
       _isDragging = false;
     });
 
+    widget.onSwipeStateChanged?.call(false, 0.0);
     _animateCardRemoval();
   }
 
@@ -71,11 +103,10 @@ class _PetCardStackState extends State<PetCardStack>
     _animationController.forward().then((_) {
       setState(() {
         _currentIndex = (_currentIndex + 1) % _cardStack.length;
-        var allPets = Pet.samplePets;
-        var nextPetIndex = (_currentIndex + maxCards - 1) % allPets.length;
-        if (_cardStack.length == maxCards) {
+        var nextPetIndex = (_currentIndex + maxCards - 1) % _allPets.length;
+        if (_cardStack.length == maxCards && _allPets.isNotEmpty) {
           _cardStack[(_currentIndex + maxCards - 1) % maxCards] =
-              allPets[nextPetIndex];
+              _allPets[nextPetIndex];
         }
       });
       _animationController.reset();
@@ -84,6 +115,35 @@ class _PetCardStackState extends State<PetCardStack>
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6C5CE7)),
+        ),
+      );
+    }
+
+    if (_cardStack.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.pets, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              '표시할 펫이 없습니다',
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+            SizedBox(height: 8),
+            Text(
+              '새로운 펫이 등록되면 알려드릴게요!',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
     var size = MediaQuery.of(context).size;
 
     return Stack(
@@ -99,7 +159,7 @@ class _PetCardStackState extends State<PetCardStack>
           var scale = 0.95 - (index * 0.05);
           var offsetY = -index * 15.0;
           var offsetX = index * 3.0;
-          var rotation = (index * 0.015) * (index % 2 == 0 ? 1 : -1);
+          var rotation = 0.0;
           var opacity = 1.0 - (index * 0.12);
 
           return AnimatedBuilder(
@@ -118,8 +178,7 @@ class _PetCardStackState extends State<PetCardStack>
                 var nextScale = 0.95 - ((index - 1) * 0.05);
                 var nextOffsetY = -(index - 1) * 15.0;
                 var nextOffsetX = (index - 1) * 3.0;
-                var nextRotation =
-                    ((index - 1) * 0.015) * ((index - 1) % 2 == 0 ? 1 : -1);
+                var nextRotation = 0.0;
                 var nextOpacity = 1.0 - ((index - 1) * 0.12);
 
                 var animatedScale =
@@ -172,7 +231,6 @@ class _PetCardStackState extends State<PetCardStack>
                     : _buildBackCard(pet, index),
           );
         }).reversed,
-
         if (_isDragging)
           Positioned.fill(
             child: Stack(
@@ -206,11 +264,14 @@ class _PetCardStackState extends State<PetCardStack>
         setState(() {
           _isDragging = true;
         });
+        widget.onSwipeStateChanged?.call(true, 0.0);
       },
       onPanUpdate: (details) {
         setState(() {
           _position += details.delta.dx;
         });
+        var opacity = (_position.abs() / (size.width * 0.3)).clamp(0.0, 0.8);
+        widget.onSwipeStateChanged?.call(true, opacity);
       },
       onPanEnd: (details) {
         var swipeThreshold = size.width * 0.3;
@@ -223,20 +284,40 @@ class _PetCardStackState extends State<PetCardStack>
             _position = 0;
             _isDragging = false;
           });
+          widget.onSwipeStateChanged?.call(false, 0.0);
         }
       },
       child: Transform.translate(
         offset: Offset(_position, 0),
         child: Transform.rotate(
           angle: rotation,
-          child: Transform.scale(scale: scale, child: PetCard(pet: pet)),
+          child: Transform.scale(
+            scale: scale,
+            child: PetCard(
+              pet: pet,
+              transform:
+                  Matrix4.identity()
+                    ..translate(_position, 0.0)
+                    ..rotateZ(rotation)
+                    ..scale(scale),
+              isOnTop: true,
+              onSwipe: () {},
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildBackCard(Pet pet, int index) {
-    return IgnorePointer(child: PetCard(pet: pet));
+    return IgnorePointer(
+      child: PetCard(
+        pet: pet,
+        transform: Matrix4.identity(),
+        isOnTop: false,
+        onSwipe: () {},
+      ),
+    );
   }
 }
 

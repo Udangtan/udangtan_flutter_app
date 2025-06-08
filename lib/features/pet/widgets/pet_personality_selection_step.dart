@@ -29,7 +29,7 @@ class PetPersonalitySelectionStep extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             '해당하는 성격을 모두 선택해주세요 (다중 선택 가능)',
             style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
           ),

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'package:udangtan_flutter_app/models/chat_room.dart';
 import 'package:udangtan_flutter_app/pages/chat/chat_detail_page.dart';
-import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
+import 'package:udangtan_flutter_app/services/chat_service.dart';
+import 'package:udangtan_flutter_app/services/supabase_service.dart';
 import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
-import 'package:udangtan_flutter_app/shared/widgets/common_bottom_navigation.dart';
 
-class ChatListPage extends StatelessWidget {
+class ChatListPage extends StatefulWidget {
   const ChatListPage({
     super.key,
     required this.currentNavIndex,
@@ -17,54 +17,94 @@ class ChatListPage extends StatelessWidget {
   final Function(int) onNavTap;
 
   @override
-  Widget build(BuildContext context) {
-    var chatRooms = ChatRoom.sampleChatRooms;
+  State<ChatListPage> createState() => _ChatListPageState();
+}
 
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF5F5F5),
-        appBar: const CommonAppBar(
-          title: '채팅',
-          automaticallyImplyLeading: false,
-        ),
-        body: SafeArea(
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+class _ChatListPageState extends State<ChatListPage> {
+  List<ChatRoom> _chatRooms = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadChatRooms();
+  }
+
+  Future<void> _loadChatRooms() async {
+    try {
+      var user = SupabaseService.client.auth.currentUser;
+      if (user != null) {
+        var chatRooms = await ChatService.getChatRooms(user.id);
+        setState(() {
+          _chatRooms = chatRooms;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      appBar: const CommonAppBar(title: '채팅', automaticallyImplyLeading: false),
+      body:
+          _isLoading
+              ? const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6C5CE7)),
                 ),
-              ],
-            ),
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: chatRooms.length,
-              separatorBuilder:
-                  (context, index) => const Divider(
-                    height: 0,
-                    color: Color.fromARGB(255, 255, 255, 255),
-                  ),
-              itemBuilder: (context, index) {
-                var chatRoom = chatRooms[index];
-                return _buildChatRoomItem(context, chatRoom);
-              },
-            ),
+              )
+              : _chatRooms.isEmpty
+              ? _getEmptyState()
+              : RefreshIndicator(
+                onRefresh: _loadChatRooms,
+                child: ListView.separated(
+                  itemCount: _chatRooms.length,
+                  separatorBuilder:
+                      (context, index) =>
+                          Divider(height: 1, color: Colors.grey[200]),
+                  itemBuilder: (context, index) {
+                    return _buildChatRoomCard(_chatRooms[index]);
+                  },
+                ),
+              ),
+    );
+  }
+
+  Widget _getEmptyState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
+          SizedBox(height: 16),
+          Text(
+            '아직 채팅방이 없어요',
+            style: TextStyle(fontSize: 18, color: Colors.grey),
           ),
-        ),
-        bottomNavigationBar: CommonBottomNavigation(
-          currentIndex: currentNavIndex,
-          onTap: onNavTap,
-        ),
+          SizedBox(height: 8),
+          Text(
+            '펫을 찜하고 새로운 친구를 만나보세요!',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildChatRoomItem(BuildContext context, ChatRoom chatRoom) {
+  Widget _buildChatRoomCard(ChatRoom chatRoom) {
+    var currentUserId = SupabaseService.client.auth.currentUser?.id ?? '';
+
+    var otherUserName = chatRoom.getOtherUserName(currentUserId);
+    var otherUserProfileImage = chatRoom.getOtherUserProfileImage(
+      currentUserId,
+    );
+
     return InkWell(
       onTap: () {
         Navigator.push(
@@ -83,17 +123,24 @@ class ChatListPage extends StatelessWidget {
               child: Container(
                 width: 60,
                 height: 60,
-                color: AppColors.cardBackground,
-                child: Image.asset(
-                  chatRoom.otherUser.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder:
-                      (context, error, stackTrace) => const Icon(
-                        Icons.pets,
-                        size: 30,
-                        color: Colors.white70,
-                      ),
-                ),
+                color: Colors.grey[200],
+                child:
+                    otherUserProfileImage != null
+                        ? Image.network(
+                          otherUserProfileImage,
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (context, error, stackTrace) => const Icon(
+                                Icons.person,
+                                size: 30,
+                                color: Colors.grey,
+                              ),
+                        )
+                        : const Icon(
+                          Icons.person,
+                          size: 30,
+                          color: Colors.grey,
+                        ),
               ),
             ),
             const SizedBox(width: 16),
@@ -105,64 +152,33 @@ class ChatListPage extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        chatRoom.otherUser.name,
+                        otherUserName,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
                         ),
                       ),
-                      Text(
-                        chatRoom.formattedTime,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
+                      if (chatRoom.lastMessageAt != null)
+                        Text(
+                          _formatLastMessageTime(chatRoom.lastMessageAt),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          chatRoom.lastMessage,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color:
-                                chatRoom.isRead
-                                    ? Colors.grey.shade600
-                                    : Colors.black,
-                            fontWeight:
-                                chatRoom.isRead
-                                    ? FontWeight.normal
-                                    : FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (chatRoom.unreadCount > 0)
-                        Container(
-                          margin: const EdgeInsets.only(left: 8),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            chatRoom.unreadCount.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
+                  Text(
+                    chatRoom.lastMessage ?? '메시지가 없습니다',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.normal,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -171,5 +187,22 @@ class ChatListPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatLastMessageTime(DateTime? dateTime) {
+    if (dateTime == null) return '';
+
+    var now = DateTime.now();
+    var difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}일 전';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}시간 전';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}분 전';
+    } else {
+      return '방금 전';
+    }
   }
 }

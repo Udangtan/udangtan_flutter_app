@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:udangtan_flutter_app/models/chat_message.dart';
 import 'package:udangtan_flutter_app/models/chat_room.dart';
-import 'package:udangtan_flutter_app/pages/chat/profile_detail_page.dart';
-import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
+import 'package:udangtan_flutter_app/services/chat_service.dart';
+import 'package:udangtan_flutter_app/services/supabase_service.dart';
 import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
 
 class ChatDetailPage extends StatefulWidget {
@@ -23,16 +23,40 @@ class _ChatDetailPageState extends State<ChatDetailPage>
 
   List<ChatMessage> _messages = [];
   bool _isKeyboardVisible = false;
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _messages = ChatMessage.getSampleMessages(widget.chatRoom.id);
+    _initializeCurrentUser();
+    _loadMessages();
 
     _textFieldFocusNode.addListener(_onFocusChange);
 
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+  }
+
+  Future<void> _initializeCurrentUser() async {
+    var user = SupabaseService.client.auth.currentUser;
+    if (user != null) {
+      setState(() {
+        _currentUserId = user.id;
+      });
+    }
+  }
+
+  Future<void> _loadMessages() async {
+    try {
+      if (widget.chatRoom.id != null) {
+        var messages = await ChatService.getChatMessages(widget.chatRoom.id!);
+        setState(() {
+          _messages = messages;
+        });
+      }
+    } catch (e) {
+      // 에러 처리
+    }
   }
 
   @override
@@ -71,23 +95,33 @@ class _ChatDetailPageState extends State<ChatDetailPage>
     }
   }
 
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) return;
+  Future<void> _sendMessage(String messageText) async {
+    if (messageText.trim().isEmpty ||
+        _currentUserId == null ||
+        widget.chatRoom.id == null) {
+      return;
+    }
 
-    var newMessage = ChatMessage(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      senderId: 'me',
-      message: _messageController.text.trim(),
-      timestamp: DateTime.now(),
-      isFromMe: true,
-    );
+    try {
+      await ChatService.sendMessage(
+        chatRoomId: widget.chatRoom.id!,
+        senderId: _currentUserId!,
+        message: messageText,
+      );
 
-    setState(() {
-      _messages.add(newMessage);
-    });
+      setState(() {
+        _messageController.clear();
+      });
 
-    _messageController.clear();
-    _scrollToBottom();
+      // 메시지 목록 새로고침
+      await _loadMessages();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('메시지 전송 실패: $e')));
+      }
+    }
   }
 
   void _scrollToBottom() {
@@ -122,12 +156,29 @@ class _ChatDetailPageState extends State<ChatDetailPage>
     });
   }
 
-  bool _isSameMinute(DateTime a, DateTime b) {
+  bool _isSameMinute(DateTime? a, DateTime? b) {
+    if (a == null || b == null) return false;
     return a.year == b.year &&
         a.month == b.month &&
         a.day == b.day &&
         a.hour == b.hour &&
         a.minute == b.minute;
+  }
+
+  String _getOtherUserName() {
+    if (_currentUserId == widget.chatRoom.user1Id) {
+      return widget.chatRoom.user2Name ?? 'Unknown';
+    } else {
+      return widget.chatRoom.user1Name ?? 'Unknown';
+    }
+  }
+
+  String? _getOtherUserProfileImage() {
+    if (_currentUserId == widget.chatRoom.user1Id) {
+      return widget.chatRoom.user2ProfileImage;
+    } else {
+      return widget.chatRoom.user1ProfileImage;
+    }
   }
 
   @override
@@ -136,45 +187,18 @@ class _ChatDetailPageState extends State<ChatDetailPage>
       backgroundColor: const Color(0xFFF8F8F8),
       resizeToAvoidBottomInset: true,
       appBar: CommonAppBar(
-        title: widget.chatRoom.otherUser.name,
+        title: _getOtherUserName(),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder:
-                        (context) =>
-                            ProfileDetailPage(pet: widget.chatRoom.otherUser),
+          PopupMenuButton(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            itemBuilder:
+                (context) => [
+                  PopupMenuItem(
+                    value: 'profile',
+                    child: Text('${_getOtherUserName()} 프로필'),
                   ),
-                );
-              },
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      color: AppColors.cardBackground,
-                      child: Image.asset(
-                        widget.chatRoom.otherUser.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder:
-                            (context, error, stackTrace) => const Icon(
-                              Icons.pets,
-                              size: 16,
-                              color: Colors.white70,
-                            ),
-                      ),
-                    ),
-                  ),
+                  const PopupMenuItem(value: 'block', child: Text('차단하기')),
                 ],
-              ),
-            ),
           ),
         ],
       ),
@@ -194,8 +218,8 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                 if (index < _messages.length - 1) {
                   var next = _messages[index + 1];
                   var sameMinute = _isSameMinute(
-                    message.timestamp,
-                    next.timestamp,
+                    message.createdAt,
+                    next.createdAt,
                   );
                   if (sameMinute) {
                     showTime = false;
@@ -217,13 +241,13 @@ class _ChatDetailPageState extends State<ChatDetailPage>
     bool showTime,
     ChatMessage? previousMessage,
   ) {
-    var isFromMe = message.isFromMe;
+    var isFromMe = message.senderId == _currentUserId;
 
     var shouldShowAvatar =
         !isFromMe &&
         (previousMessage == null ||
             previousMessage.senderId != message.senderId ||
-            !_isSameMinute(previousMessage.timestamp, message.timestamp));
+            !_isSameMinute(previousMessage.createdAt, message.createdAt));
 
     if (isFromMe) {
       return Container(
@@ -233,9 +257,9 @@ class _ChatDetailPageState extends State<ChatDetailPage>
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (showTime) ...[
+            if (showTime && message.createdAt != null) ...[
               Text(
-                message.formattedTime,
+                _formatTime(message.createdAt!),
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               ),
               const SizedBox(width: 8),
@@ -278,23 +302,16 @@ class _ChatDetailPageState extends State<ChatDetailPage>
           mainAxisSize: MainAxisSize.min,
           children: [
             if (shouldShowAvatar) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  color: AppColors.cardBackground,
-                  child: Image.asset(
-                    widget.chatRoom.otherUser.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder:
-                        (context, error, stackTrace) => const Icon(
-                          Icons.pets,
-                          size: 15,
-                          color: Colors.white70,
-                        ),
-                  ),
-                ),
+              CircleAvatar(
+                radius: 18,
+                backgroundImage:
+                    _getOtherUserProfileImage() != null
+                        ? NetworkImage(_getOtherUserProfileImage()!)
+                        : null,
+                child:
+                    _getOtherUserProfileImage() == null
+                        ? const Icon(Icons.person, size: 16)
+                        : null,
               ),
               const SizedBox(width: 8),
             ] else ...[
@@ -305,7 +322,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
               children: [
                 if (shouldShowAvatar) ...[
                   Text(
-                    widget.chatRoom.otherUser.name,
+                    _getOtherUserName(),
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -346,10 +363,10 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                         ),
                       ),
                     ),
-                    if (showTime) ...[
+                    if (showTime && message.createdAt != null) ...[
                       const SizedBox(width: 8),
                       Text(
-                        message.formattedTime,
+                        _formatTime(message.createdAt!),
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade600,
@@ -385,9 +402,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
               ),
               child: const Icon(Icons.add, color: Colors.grey, size: 20),
             ),
-
             const SizedBox(width: 12),
-
             Expanded(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -402,14 +417,12 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                     hintText: '메시지를 입력하세요...',
                     border: InputBorder.none,
                   ),
-                  onSubmitted: (_) => _sendMessage(),
+                  onSubmitted: (value) => _sendMessage(value),
                   onTap: () => _scrollToBottomWithDelay(),
                 ),
               ),
             ),
-
             const SizedBox(width: 12),
-
             Container(
               width: 36,
               height: 36,
@@ -423,9 +436,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                 size: 20,
               ),
             ),
-
             const SizedBox(width: 8),
-
             Container(
               width: 36,
               height: 36,
@@ -439,5 +450,9 @@ class _ChatDetailPageState extends State<ChatDetailPage>
         ),
       ),
     );
+  }
+
+  String _formatTime(DateTime dateTime) {
+    return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }

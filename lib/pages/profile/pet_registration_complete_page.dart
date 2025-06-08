@@ -60,7 +60,7 @@ class PetRegistrationCompletePage extends StatelessWidget {
                           width: 50,
                           height: 50,
                           decoration: AppStyles.circleAvatarDecoration(
-                            pet.type == '강아지'
+                            pet.species == '강아지'
                                 ? AppColors.dogColor
                                 : AppColors.catColor,
                           ),
@@ -84,8 +84,8 @@ class PetRegistrationCompletePage extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                '${pet.type} • ${pet.gender} • ${pet.ageRange}',
-                                style: TextStyle(
+                                '${pet.species} • ${pet.gender} • ${pet.age}',
+                                style: const TextStyle(
                                   fontSize: 14,
                                   color: AppColors.textSecondary,
                                 ),
@@ -95,7 +95,7 @@ class PetRegistrationCompletePage extends StatelessWidget {
                         ),
                       ],
                     ),
-                    if (pet.personalities.isNotEmpty) ...[
+                    if (pet.personality.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       const Text(
                         '성격',
@@ -110,7 +110,7 @@ class PetRegistrationCompletePage extends StatelessWidget {
                         spacing: 6,
                         runSpacing: 6,
                         children:
-                            pet.personalities.map((personality) {
+                            pet.personality.map((personality) {
                               return Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 12,

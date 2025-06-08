@@ -33,7 +33,7 @@ class PetBasicInfoStep extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             '이름과 나이를 알려주세요',
             style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
           ),

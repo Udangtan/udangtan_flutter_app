@@ -1,95 +1,230 @@
 import 'package:flutter/material.dart';
 
-import 'package:udangtan_flutter_app/features/pet/widgets/pet_traits_modal.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
-import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
-import 'package:udangtan_flutter_app/shared/styles/app_text_styles.dart';
-import 'package:udangtan_flutter_app/shared/widgets/tag_button.dart';
 
-class PetCard extends StatelessWidget {
-  const PetCard({super.key, required this.pet, this.position = 0});
+class PetCard extends StatefulWidget {
+  const PetCard({
+    super.key,
+    required this.pet,
+    required this.transform,
+    required this.isOnTop,
+    required this.onSwipe,
+  });
 
   final Pet pet;
-  final double position;
+  final Matrix4 transform;
+  final bool isOnTop;
+  final VoidCallback onSwipe;
+
+  @override
+  State<PetCard> createState() => _PetCardState();
+}
+
+class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
+  bool _imageLoaded = false;
+  late AnimationController _skeletonController;
+  late Animation<double> _skeletonAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _skeletonController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    _skeletonAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _skeletonController, curve: Curves.easeInOut),
+    );
+    _skeletonController.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _skeletonController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Transform.translate(
-      offset: Offset(position, 0),
-      child: Transform.rotate(
-        angle: position / 1000,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            color: Colors.white,
-            // color: AppColors.white,
-            // border: Border.all(color: AppColors.borderLight, width: 2),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 3, child: _buildImageAndFeaturesSection(context)),
-              _buildActionSection(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildImageAndFeaturesSection(BuildContext context) {
-    return Padding(
-      // padding: const EdgeInsets.all(16),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15),
-        child: Container(
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(13),
-              topRight: Radius.circular(13),
-            ),
-            color: AppColors.cardBackground,
-          ),
-          width: double.infinity,
+    return Transform(
+      transform: widget.transform,
+      child: GestureDetector(
+        onTap: widget.onSwipe,
+        child: SizedBox(
+          width: 340,
+          height: 500,
           child: Stack(
             children: [
-              Positioned.fill(
-                child: Image.asset(
-                  pet.imageUrl,
-                  // fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                  const Icon(Icons.pets, size: 150, color: Colors.white70),
-                ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child:
+                    _imageLoaded ? _buildMainImage() : _buildSkeletonLoader(),
               ),
-
-              Positioned.fill(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.center,
-                      colors: [
-                        Colors.black54,
-                        Colors.transparent,
-                      ],
+              if (_imageLoaded) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.2),
+                          Colors.black.withValues(alpha: 0.8),
+                        ],
+                        stops: const [0.0, 0.4, 0.7, 1.0],
+                      ),
                     ),
                   ),
                 ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.all(15),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Spacer(),
-                    _buildPetInfo(),
-                    const SizedBox(height: 16),
-                    _buildFeaturesSection(context),
-                  ],
+                Positioned(
+                  top: 24,
+                  right: 24,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${widget.pet.locationCity ?? '서울'} ${widget.pet.locationDistrict ?? '강남구'}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                Positioned(
+                  top: 24,
+                  left: 24,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      widget.pet.species,
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 24,
+                  left: 24,
+                  right: 24,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${widget.pet.name}, ${widget.pet.age}세',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black26,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (widget.pet.personality.isNotEmpty)
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children:
+                              widget.pet.personality
+                                  .take(3)
+                                  .map(
+                                    (tag) => Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.25,
+                                        ),
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        tag,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                        ),
+                      const SizedBox(height: 16),
+                      if (widget.pet.description != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.95),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            widget.pet.description!,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
+                              height: 1.4,
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -97,124 +232,86 @@ class PetCard extends StatelessWidget {
     );
   }
 
-
-  Widget _buildPetInfo() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('${pet.name} ${pet.age}', style: AppTextStyles.petName),
-        Row(
-          children: [
-            const Icon(Icons.location_on, color: AppColors.textWhite, size: 14),
-            Text(
-              '${pet.location} · ${pet.distance}',
-              style: AppTextStyles.petInfo,
-            ),
-          ],
-        ),
-        const SizedBox(height: 5),
-        Row(
-          children: [
-            const Icon(Icons.pets, color: AppColors.textWhite, size: 14),
-            const SizedBox(width: 4),
-            Text(pet.type, style: AppTextStyles.petInfo),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFeaturesSection(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(pet.description, style: AppTextStyles.description),
-          const SizedBox(height: 8),
-          Row(
-            children:
-                pet.tags.asMap().entries.map((entry) {
-                  var index = entry.key;
-                  var tag = entry.value;
-                  var isLast = index == pet.tags.length - 1;
-                  var isMoreTag = tag.startsWith('+');
-
-                  Color tagColor = AppColors.tagBackground;
-                  if (index == 1) tagColor = AppColors.primaryWithOpacity10;
-                  if (isLast) tagColor = AppColors.transparent;
-
-                  return Row(
-                    children: [
-                      GestureDetector(
-                        onTap:
-                            isMoreTag ? () => _showTraitsModal(context) : null,
-                        child: TagButton(
-                          text: tag,
-                          color: tagColor,
-                          isClickable: isMoreTag,
-                        ),
-                      ),
-                      if (!isLast) const SizedBox(width: 8),
-                    ],
-                  );
-                }).toList(),
+  Widget _buildMainImage() {
+    return widget.pet.profileImages.isNotEmpty
+        ? Image.network(
+          widget.pet.profileImages.first,
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    _imageLoaded = true;
+                  });
+                  _skeletonController.stop();
+                }
+              });
+              return child;
+            }
+            return _buildSkeletonLoader();
+          },
+          errorBuilder: (context, error, stackTrace) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _imageLoaded = true;
+                });
+                _skeletonController.stop();
+              }
+            });
+            return Container(
+              color: Colors.grey[200],
+              child: const Center(
+                child: Icon(Icons.pets, size: 80, color: Colors.grey),
+              ),
+            );
+          },
+        )
+        : Container(
+          color: Colors.grey[200],
+          child: const Center(
+            child: Icon(Icons.pets, size: 80, color: Colors.grey),
           ),
-        ],
-      ),
-    );
+        );
   }
 
-  void _showTraitsModal(BuildContext context) {
-    PetTraitsModal.show(context, pet);
-  }
-
-  Widget _buildActionSection() {
-    return Padding(
-      // padding: const EdgeInsets.all(10),
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-      child: Row(
-        children: [
-          Expanded(
-            child: SizedBox(
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE9D7F7),
-                  foregroundColor: const Color(0xFF9E4BDE),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+  Widget _buildSkeletonLoader() {
+    return AnimatedBuilder(
+      animation: _skeletonAnimation,
+      builder: (context, child) {
+        return Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment(-1.0 + 2.0 * _skeletonAnimation.value, 0.0),
+              end: Alignment(1.0 + 2.0 * _skeletonAnimation.value, 0.0),
+              colors: [Colors.grey[300]!, Colors.grey[100]!, Colors.grey[300]!],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.pets, size: 80, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  '이미지 로딩 중...',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                child: const Text('괜찮아요', style: AppTextStyles.buttonText),
-              ),
+              ],
             ),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: SizedBox(
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF9E4BDE),
-                  foregroundColor: AppColors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text('간식주기', style: AppTextStyles.buttonText),
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
-
 }

@@ -1,75 +1,205 @@
 class Pet {
   const Pet({
-    required this.id,
+    this.id,
+    required this.ownerId,
     required this.name,
+    required this.species,
+    required this.breed,
     required this.age,
-    required this.location,
-    required this.distance,
-    required this.type,
-    required this.imageUrl,
-    required this.tags,
-    required this.allTags,
-    required this.description,
-    this.gender,
-    this.breed,
-    this.personalities = const [],
-    this.ageRange,
-    this.isMyPet = false,
+    required this.gender,
+    required this.profileImages,
+    required this.personality,
+    this.description,
+    this.isNeutered,
+    this.isVaccinated,
+    this.weight,
+    this.size,
+    this.activityLevel,
+    this.locationCity,
+    this.locationDistrict,
+    this.locationLatitude,
+    this.locationLongitude,
+    this.isActive = true,
+    this.createdAt,
+    this.updatedAt,
+    this.ownerName,
+    this.ownerProfileImage,
+    this.ownerCity,
+    this.ownerDistrict,
   });
 
-  final String id;
-  final String name;
-  final int age;
-  final String location;
-  final String distance;
-  final String type; // '강아지' or '고양이'
-  final String imageUrl;
-  final List<String> tags;
-  final List<String> allTags;
-  final String description;
-  final String? gender; // '수컷' or '암컷'
-  final String? breed; // 품종
-  final List<String> personalities; // 성격들
-  final String? ageRange; // '1살 미만', '1-3살', '4-7살', '8살 이상'
-  final bool isMyPet; // 내 반려동물 여부
-
-  Pet copyWith({
-    String? id,
-    String? name,
-    int? age,
-    String? location,
-    String? distance,
-    String? type,
-    String? imageUrl,
-    List<String>? tags,
-    List<String>? allTags,
-    String? description,
-    String? gender,
-    String? breed,
-    List<String>? personalities,
-    String? ageRange,
-    bool? isMyPet,
-  }) {
+  factory Pet.fromJson(Map<String, dynamic> json) {
     return Pet(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      age: age ?? this.age,
-      location: location ?? this.location,
-      distance: distance ?? this.distance,
-      type: type ?? this.type,
-      imageUrl: imageUrl ?? this.imageUrl,
-      tags: tags ?? this.tags,
-      allTags: allTags ?? this.allTags,
-      description: description ?? this.description,
-      gender: gender ?? this.gender,
-      breed: breed ?? this.breed,
-      personalities: personalities ?? this.personalities,
-      ageRange: ageRange ?? this.ageRange,
-      isMyPet: isMyPet ?? this.isMyPet,
+      id: json['id'] as int?,
+      ownerId: json['owner_id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      species: json['species'] as String? ?? '',
+      breed: json['breed'] as String? ?? '',
+      age: json['age'] as int? ?? 0,
+      gender: json['gender'] as String? ?? '',
+      profileImages:
+          (json['profile_images'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      personality:
+          (json['personality'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      description: json['description'] as String?,
+      isNeutered: json['is_neutered'] as bool?,
+      isVaccinated: json['is_vaccinated'] as bool?,
+      weight: (json['weight'] as num?)?.toDouble(),
+      size: json['size'] as String?,
+      activityLevel: json['activity_level'] as String?,
+      locationCity: json['location_city'] as String?,
+      locationDistrict: json['location_district'] as String?,
+      locationLatitude: (json['location_latitude'] as num?)?.toDouble(),
+      locationLongitude: (json['location_longitude'] as num?)?.toDouble(),
+      isActive: json['is_active'] as bool? ?? true,
+      createdAt:
+          json['created_at'] != null
+              ? DateTime.parse(json['created_at'] as String)
+              : null,
+      updatedAt:
+          json['updated_at'] != null
+              ? DateTime.parse(json['updated_at'] as String)
+              : null,
+      ownerName: json['owner_name'] as String?,
+      ownerProfileImage: json['owner_profile_image'] as String?,
+      ownerCity: json['owner_city'] as String?,
+      ownerDistrict: json['owner_district'] as String?,
     );
   }
 
-  // 반려동물 성격 옵션들
+  final int? id;
+  final String ownerId;
+  final String name;
+  final String species;
+  final String breed;
+  final int age;
+  final String gender;
+  final List<String> profileImages;
+  final List<String> personality;
+  final String? description;
+  final bool? isNeutered;
+  final bool? isVaccinated;
+  final double? weight;
+  final String? size;
+  final String? activityLevel;
+  final String? locationCity;
+  final String? locationDistrict;
+  final double? locationLatitude;
+  final double? locationLongitude;
+  final bool isActive;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  final String? ownerName;
+  final String? ownerProfileImage;
+  final String? ownerCity;
+  final String? ownerDistrict;
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (id != null) 'id': id,
+      'owner_id': ownerId,
+      'name': name,
+      'species': species,
+      'breed': breed,
+      'age': age,
+      'gender': gender,
+      'profile_images': profileImages,
+      'personality': personality,
+      if (description != null) 'description': description,
+      if (isNeutered != null) 'is_neutered': isNeutered,
+      if (isVaccinated != null) 'is_vaccinated': isVaccinated,
+      if (weight != null) 'weight': weight,
+      if (size != null) 'size': size,
+      if (activityLevel != null) 'activity_level': activityLevel,
+      if (locationCity != null) 'location_city': locationCity,
+      if (locationDistrict != null) 'location_district': locationDistrict,
+      if (locationLatitude != null) 'location_latitude': locationLatitude,
+      if (locationLongitude != null) 'location_longitude': locationLongitude,
+      'is_active': isActive,
+    };
+  }
+
+  Pet copyWith({
+    int? id,
+    String? ownerId,
+    String? name,
+    String? species,
+    String? breed,
+    int? age,
+    String? gender,
+    List<String>? profileImages,
+    List<String>? personality,
+    String? description,
+    bool? isNeutered,
+    bool? isVaccinated,
+    double? weight,
+    String? size,
+    String? activityLevel,
+    String? locationCity,
+    String? locationDistrict,
+    double? locationLatitude,
+    double? locationLongitude,
+    bool? isActive,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? ownerName,
+    String? ownerProfileImage,
+    String? ownerCity,
+    String? ownerDistrict,
+  }) {
+    return Pet(
+      id: id ?? this.id,
+      ownerId: ownerId ?? this.ownerId,
+      name: name ?? this.name,
+      species: species ?? this.species,
+      breed: breed ?? this.breed,
+      age: age ?? this.age,
+      gender: gender ?? this.gender,
+      profileImages: profileImages ?? this.profileImages,
+      personality: personality ?? this.personality,
+      description: description ?? this.description,
+      isNeutered: isNeutered ?? this.isNeutered,
+      isVaccinated: isVaccinated ?? this.isVaccinated,
+      weight: weight ?? this.weight,
+      size: size ?? this.size,
+      activityLevel: activityLevel ?? this.activityLevel,
+      locationCity: locationCity ?? this.locationCity,
+      locationDistrict: locationDistrict ?? this.locationDistrict,
+      locationLatitude: locationLatitude ?? this.locationLatitude,
+      locationLongitude: locationLongitude ?? this.locationLongitude,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      ownerName: ownerName ?? this.ownerName,
+      ownerProfileImage: ownerProfileImage ?? this.ownerProfileImage,
+      ownerCity: ownerCity ?? this.ownerCity,
+      ownerDistrict: ownerDistrict ?? this.ownerDistrict,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'Pet(id: $id, name: $name, species: $species, breed: $breed, age: $age)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Pet && other.id == id;
+  }
+
+  @override
+  int get hashCode {
+    return id.hashCode;
+  }
+
   static const List<String> personalityOptions = [
     '활발함',
     '조용함',
@@ -89,7 +219,6 @@ class Pet {
     '겁많음',
   ];
 
-  // 나이 구간 옵션들
   static const List<String> ageRangeOptions = [
     '1살 미만',
     '1-3살',
@@ -97,131 +226,9 @@ class Pet {
     '8살 이상',
   ];
 
-  // 샘플 데이터
-  static Pet get sample => const Pet(
-    id: '1',
-    name: '김마루',
-    age: 5,
-    location: '서울 강동구',
-    distance: '300m',
-    type: '강아지',
-    imageUrl: 'assets/images/splash-image2.png',
-    tags: ['🐾 장난이', '🐶 훈련하기', '+3개'],
-    allTags: ['🐾 장난이', '🐶 훈련하기', '⚽ 공놀이', '👕 옷입히기', '🏠 집콕파'],
-    description: '❤️ 이 친구의 특징은',
-    gender: '수컷',
-    breed: '골든 리트리버',
-    personalities: ['활발함', '사교적', '애교많음'],
-    ageRange: '4-7살',
-  );
+  static const List<String> sizeOptions = ['소형', '중형', '대형'];
 
-  // 내 반려동물 샘플 데이터
-  static const List<Pet> myPets = [
-    Pet(
-      id: 'my1',
-      name: '김마루',
-      age: 5,
-      location: '서울 강동구',
-      distance: '0m',
-      type: '강아지',
-      imageUrl: 'assets/images/splash-image2.png',
-      tags: ['🐾 활발함', '🎾 사교적', '+1개'],
-      allTags: ['🐾 활발함', '🎾 사교적', '💕 애교많음'],
-      description: '우리 마루는 정말 활발하고 사교적이에요!',
-      gender: '수컷',
-      breed: '골든 리트리버',
-      personalities: ['활발함', '사교적', '애교많음'],
-      ageRange: '4-7살',
-      isMyPet: true,
-    ),
-    Pet(
-      id: 'my2',
-      name: '나비',
-      age: 3,
-      location: '서울 강동구',
-      distance: '0m',
-      type: '고양이',
-      imageUrl: 'assets/images/splash-image2.png',
-      tags: ['😺 조용함', '🐱 독립적', '+1개'],
-      allTags: ['😺 조용함', '🐱 독립적', '🛏️ 온순함'],
-      description: '나비는 조용하고 독립적인 성격이에요.',
-      gender: '암컷',
-      breed: '페르시안',
-      personalities: ['조용함', '독립적', '온순함'],
-      ageRange: '1-3살',
-      isMyPet: true,
-    ),
-  ];
+  static const List<String> speciesOptions = ['강아지', '고양이'];
 
-  // 더 많은 샘플 데이터
-  static const List<Pet> samplePets = [
-    Pet(
-      id: '1',
-      name: '김마루',
-      age: 3,
-      location: '서울 강남구',
-      distance: '300m',
-      type: '강아지',
-      imageUrl: 'assets/images/splash-image2.png',
-      tags: ['🐾 활발이', '🎾 놀이꾼', '+2개'],
-      allTags: ['🐾 활발이', '🎾 놀이꾼', '⚽ 공놀이', '🦴 간식러버'],
-      description: '🎾 이 친구의 특징은',
-    ),
-    Pet(
-      id: '2',
-      name: '꼬꼬',
-      age: 2,
-      location: '서울 서초구',
-      distance: '500m',
-      type: '강아지',
-      imageUrl: 'assets/images/splash-image2.png',
-      tags: ['😺 얌전이', '🐱 깔끔이', '+2개'],
-      allTags: ['😺 얌전이', '🐱 깔끔이', '🛏️ 집콕파', '😴 낮잠림 있음'],
-      description: '🐱 이 친구의 특징은',
-    ),
-    Pet(
-      id: '3',
-      name: '몽이',
-      age: 4,
-      location: '서울 종로구',
-      distance: '800m',
-      type: '고양이',
-      imageUrl: 'assets/images/splash-image2.png',
-      tags: ['🏃 활발이', '🎾 놀이꾼', '+4개'],
-      allTags: ['🏃 활발이', '🎾 놀이꾼', '⚽ 공놀이', '🦴 간식러버', '🚿 목욕좋아', '💩 실외배변'],
-      description: '🎾 이 친구의 특징은',
-    ),
-    Pet(
-      id: '4',
-      name: '루이',
-      age: 5,
-      location: '서울 마포구',
-      distance: '1.2km',
-      type: '강아지',
-      imageUrl: 'assets/images/splash-image2.png',
-      tags: ['😴 잠꾸러기', '🐟 생선좋아', '+1개'],
-      allTags: ['😴 잠꾸러기', '🐟 생선좋아', '🛏️ 집콕파'],
-      description: '😴 이 친구의 특징은',
-    ),
-    Pet(
-      id: '5',
-      name: '보리',
-      age: 6,
-      location: '서울 강동구',
-      distance: '2km',
-      type: '강아지',
-      imageUrl: 'assets/images/splash-image2.png',
-      tags: ['🧠 똑똑이', '🦴 간식러버', '+5개'],
-      allTags: [
-        '🧠 똑똑이',
-        '🦴 간식러버',
-        '⚽ 공놀이',
-        '👕 옷입히기',
-        '🏠 집콕파',
-        '😴 낮잠림 있음',
-        '💩 실외배변',
-      ],
-      description: '🧠 이 친구의 특징은',
-    ),
-  ];
+  static const List<String> activityLevelOptions = ['낮음', '보통', '높음'];
 }

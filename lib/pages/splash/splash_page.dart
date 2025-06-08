@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
+import 'package:udangtan_flutter_app/services/auth_service.dart';
+
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
@@ -54,8 +56,22 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
 
     await Future.delayed(const Duration(milliseconds: 1200));
     if (!mounted) return;
-    if (context.mounted) {
-      await Navigator.pushReplacementNamed(context, '/welcome');
+
+    // 로그인 상태 확인
+    try {
+      bool isLoggedIn = await AuthService.isLoggedIn();
+
+      if (mounted) {
+        if (isLoggedIn) {
+          await Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          await Navigator.pushReplacementNamed(context, '/welcome');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        await Navigator.pushReplacementNamed(context, '/welcome');
+      }
     }
   }
 
