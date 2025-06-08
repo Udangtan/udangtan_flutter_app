@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
 import 'package:udangtan_flutter_app/pages/chat/chat_list_page.dart';
 import 'package:udangtan_flutter_app/pages/home/home_page.dart';
-import 'package:udangtan_flutter_app/pages/nearby/nearby_page.dart';
+import 'package:udangtan_flutter_app/pages/map/map_page.dart';
 import 'package:udangtan_flutter_app/pages/profile/profile_page.dart';
 import 'package:udangtan_flutter_app/pages/snacks/snacks_page.dart';
 
@@ -89,7 +89,7 @@ class _MainNavigationState extends State<MainNavigation>
                 currentNavIndex: _currentIndex,
                 onNavTap: _onNavTap,
               ),
-              const NearbyPage(),
+              MapPage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),
               ChatListPage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),
               ProfilePage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),
             ],

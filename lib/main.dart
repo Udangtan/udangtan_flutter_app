@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:kakao_map_plugin/kakao_map_plugin.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 import 'package:udangtan_flutter_app/app/env_config.dart';
 import 'package:udangtan_flutter_app/models/user.dart' as app_user;
 import 'package:udangtan_flutter_app/pages/auth/auth_page.dart';
@@ -18,10 +19,13 @@ import 'package:udangtan_flutter_app/services/supabase_service.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   await EnvConfig.load();
   await SupabaseService.initialize();
+
+  AuthRepository.initialize(appKey: EnvConfig.kakaoJavaScriptAppKey);
 
   // 딥링크 서비스 초기화
   SimpleDeepLinkService.initialize();
