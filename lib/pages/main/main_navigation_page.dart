@@ -18,10 +18,9 @@ class _MainNavigationState extends State<MainNavigation>
     with TickerProviderStateMixin {
   int _currentIndex = 0;
   final List<Pet> _likedPets = [];
+
   late AnimationController _fabAnimationController;
   late Animation<double> _fabAnimation;
-  bool _isSwipeActive = false;
-  double _swipeOpacity = 0.0;
 
   @override
   void initState() {
@@ -47,7 +46,6 @@ class _MainNavigationState extends State<MainNavigation>
       _currentIndex = index;
     });
 
-    // 중앙 버튼 애니메이션
     if (index == 2) {
       _fabAnimationController.reset();
       _fabAnimationController.forward();
@@ -56,91 +54,71 @@ class _MainNavigationState extends State<MainNavigation>
 
   void _onPetLiked(Pet pet) {
     setState(() {
-      if (!_likedPets.any((p) => p.id == pet.id)) {
+      if (!_likedPets.any((likedPet) => likedPet.id == pet.id)) {
         _likedPets.add(pet);
       }
     });
   }
 
   void _onSwipeStateChanged(bool isActive, double opacity) {
-    setState(() {
-      _isSwipeActive = isActive;
-      _swipeOpacity = opacity;
-    });
+    // 현재는 사용하지 않지만 향후 애니메이션 용도로 남겨둠
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          backgroundColor: Colors.grey[50],
-          body: IndexedStack(
-            index: _currentIndex,
-            children: [
-              HomePage(
-                currentNavIndex: _currentIndex,
-                onNavTap: _onNavTap,
-                onPetLiked: _onPetLiked,
-                onSwipeStateChanged: _onSwipeStateChanged,
-              ),
-              SnacksPage(
-                likedPets: _likedPets,
-                currentNavIndex: _currentIndex,
-                onNavTap: _onNavTap,
-              ),
-              MapPage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),
-              ChatListPage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),
-              ProfilePage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),
-            ],
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          HomePage(
+            currentNavIndex: _currentIndex,
+            onNavTap: _onNavTap,
+            onPetLiked: _onPetLiked,
+            onSwipeStateChanged: _onSwipeStateChanged,
           ),
-          bottomNavigationBar: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 12,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
+          SnacksPage(
+            likedPets: _likedPets,
+            currentNavIndex: _currentIndex,
+            onNavTap: _onNavTap,
+          ),
+          MapPage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),
+          ChatListPage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),
+          ProfilePage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, -4),
             ),
-            child: SafeArea(
-              child: Container(
-                height: 80,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildNavItem(0, Icons.home_filled, '홈'),
-                    _buildNavItem(1, Icons.favorite, '찜'),
-                    _buildCenterNavItem(2, Icons.location_on, '내 주변'),
-                    _buildNavItem(3, Icons.chat_bubble, '채팅'),
-                    _buildNavItem(4, Icons.person, '프로필'),
-                  ],
-                ),
-              ),
+          ],
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: SafeArea(
+          child: Container(
+            height: 80,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildNavItem(0, Icons.home_filled, '홈'),
+                _buildNavItem(1, Icons.favorite, '찜'),
+                _buildCenterNavItem(2, Icons.location_on, '내 주변'),
+                _buildNavItem(3, Icons.chat_bubble, '채팅'),
+                _buildNavItem(4, Icons.person, '프로필'),
+              ],
             ),
           ),
         ),
-
-        // 전체 화면 딤처리 오버레이 (앱바, 바텀 네비 포함)
-        if (_isSwipeActive && _currentIndex == 0)
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Container(
-                color: Colors.black.withValues(alpha: _swipeOpacity * 0.5),
-              ),
-            ),
-          ),
-      ],
+      ),
     );
   }
 

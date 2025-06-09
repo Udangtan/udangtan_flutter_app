@@ -3,12 +3,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:udangtan_flutter_app/models/pet.dart';
 import 'package:udangtan_flutter_app/models/user.dart' as app_user;
+import 'package:udangtan_flutter_app/pages/profile/address_management_page.dart';
+import 'package:udangtan_flutter_app/pages/profile/pet_registration_complete_page.dart';
 import 'package:udangtan_flutter_app/pages/profile/pet_registration_page.dart';
 import 'package:udangtan_flutter_app/services/auth_service.dart';
+import 'package:udangtan_flutter_app/services/location_service.dart';
 import 'package:udangtan_flutter_app/services/pet_service.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_styles.dart';
 import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
+import 'package:udangtan_flutter_app/shared/widgets/location_display_widget.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({
@@ -28,6 +32,8 @@ class _ProfilePageState extends State<ProfilePage> {
   List<Pet> myPets = [];
   Session? _currentSession;
   app_user.User? _currentUser;
+  final GlobalKey<State<LocationDisplayWidget>> _locationWidgetKey =
+      GlobalKey<State<LocationDisplayWidget>>();
 
   @override
   void initState() {
@@ -37,7 +43,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _loadUserData() async {
     try {
-      // 현재 세션과 사용자 정보 가져오기
       var session = await AuthService.getCurrentSession();
       var user = await AuthService.getCurrentUser();
 
@@ -46,12 +51,8 @@ class _ProfilePageState extends State<ProfilePage> {
         _currentUser = user;
       });
 
-      // 사용자의 펫 데이터 가져오기
       if (user != null) {
-        List<Pet> pets = await PetService.getPetsByUser(user.id);
-        setState(() {
-          myPets = pets;
-        });
+        await Future.wait([_loadPets(user.id), _loadDefaultAddress(user.id)]);
       } else {
         setState(() {
           myPets = [];
@@ -61,6 +62,27 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         myPets = [];
       });
+    }
+  }
+
+  Future<void> _loadPets(String userId) async {
+    try {
+      List<Pet> pets = await PetService.getPetsByUser(userId);
+      setState(() {
+        myPets = pets;
+      });
+    } catch (e) {
+      setState(() {
+        myPets = [];
+      });
+    }
+  }
+
+  Future<void> _loadDefaultAddress(String userId) async {
+    try {
+      await LocationService.getDefaultAddress(userId);
+    } catch (e) {
+      // Handle error silently
     }
   }
 
@@ -77,7 +99,6 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         );
 
-        // 로그인 페이지로 이동
         await Navigator.of(
           context,
         ).pushNamedAndRemoveUntil('/welcome', (route) => false);
@@ -100,6 +121,28 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  Future<void> _navigateToAddressManagement() async {
+    var userId = AuthService.getCurrentUserId();
+
+    if (userId != null) {
+      var result = await Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => const AddressManagementPage()),
+      );
+
+      if (result != null) {
+        await _loadDefaultAddress(userId);
+        setState(() {});
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('로그인이 필요합니다.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -108,26 +151,73 @@ class _ProfilePageState extends State<ProfilePage> {
         title: '마이페이지',
         automaticallyImplyLeading: false,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            _buildProfileSection(),
-            const SizedBox(height: 24),
-            _buildPetsSection(),
-            const SizedBox(height: 24),
-            _buildMenuSection(),
-            const SizedBox(height: 24),
-            _buildLogoutButton(),
-            const SizedBox(height: 20),
-          ],
-        ),
+      body: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey[200]!),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.location_on,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: LocationDisplayWidget(
+                    key: _locationWidgetKey,
+                    showManageButton: true,
+                    onManageTap: _navigateToAddressManagement,
+                    padding: EdgeInsets.zero,
+                    showIcon: false,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  _buildProfileSection(),
+                  const SizedBox(height: 24),
+                  _buildPetsSection(),
+                  const SizedBox(height: 24),
+                  _buildLogoutButton(),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildProfileSection() {
-    // 카카오 세션에서 사용자 정보 가져오기
     var userMetadata = _currentSession?.user.userMetadata;
     var userName =
         _currentUser?.name ??
@@ -142,7 +232,6 @@ class _ProfilePageState extends State<ProfilePage> {
         _currentUser?.profileImageUrl ??
         (userMetadata?['avatar_url'] as String?) ??
         '';
-    var userLocation = '서울 강동구'; // 기본 위치
 
     return Container(
       margin: AppStyles.marginHorizontal20,
@@ -153,30 +242,33 @@ class _ProfilePageState extends State<ProfilePage> {
           Container(
             width: 60,
             height: 60,
-            decoration: AppStyles.circleAvatarDecoration(AppColors.primary),
+            decoration: AppStyles.circleAvatarDecoration(AppColors.borderLight),
             child:
                 profileImageUrl.isNotEmpty
                     ? ClipOval(
                       child: Image.network(
                         profileImageUrl,
-                        fit: BoxFit.cover,
                         width: 60,
                         height: 60,
-                        errorBuilder:
-                            (context, error, stackTrace) => const Icon(
-                              Icons.person,
-                              color: AppColors.textWhite,
-                              size: 30,
-                            ),
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.person,
+                            size: 30,
+                            color: AppColors.textSecondary,
+                          );
+                        },
                       ),
                     )
                     : const Icon(
                       Icons.person,
-                      color: AppColors.textWhite,
                       size: 30,
+                      color: AppColors.textSecondary,
                     ),
           ),
+
           const SizedBox(width: 16),
+
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,14 +289,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     color: AppColors.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '$userLocation · ${_currentSession != null ? "활동 중" : "로그인 필요"}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
               ],
             ),
           ),
@@ -216,241 +300,169 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildPetsSection() {
     return Container(
       margin: AppStyles.marginHorizontal20,
-      padding: AppStyles.paddingAll20,
-      decoration: AppStyles.cardDecoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '내 반려동물들 🐾',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '내 반려동물',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              GestureDetector(
+                onTap: () async {
+                  if (_currentUser != null) {
+                    var result = await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const PetRegistrationPage(),
+                      ),
+                    );
+
+                    if (result is Pet) {
+                      _addNewPet(result);
+
+                      if (mounted) {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder:
+                                (context) =>
+                                    PetRegistrationCompletePage(pet: result),
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add, size: 16, color: Colors.white),
+                      SizedBox(width: 4),
+                      Text(
+                        '추가',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            height: 140,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: myPets.length + 1, // +1 for add button
-              itemBuilder: (context, index) {
-                if (index == myPets.length) {
-                  return _buildAddPetButton();
-                }
-                return Padding(
-                  padding: EdgeInsets.only(
-                    right: index == myPets.length - 1 ? 0 : 16,
+          if (myPets.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(40),
+              decoration: AppStyles.cardDecoration,
+              child: const Column(
+                children: [
+                  Icon(Icons.pets, size: 48, color: AppColors.textSecondary),
+                  SizedBox(height: 16),
+                  Text(
+                    '등록된 반려동물이 없습니다',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                  child: _buildPetItem(myPets[index]),
-                );
-              },
-            ),
-          ),
+                  SizedBox(height: 8),
+                  Text(
+                    '첫 번째 반려동물을 등록해보세요!',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            ...myPets.map((pet) => _buildPetCard(pet)),
         ],
       ),
     );
   }
 
-  Widget _buildPetItem(Pet pet) {
-    return SizedBox(
-      width: 100,
-      child: Column(
+  Widget _buildPetCard(Pet pet) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: AppStyles.cardDecoration,
+      child: Row(
         children: [
           Container(
-            width: 60,
-            height: 60,
-            decoration: AppStyles.circleAvatarDecoration(
-              pet.species == '강아지' ? AppColors.dogColor : AppColors.catColor,
-            ),
+            width: 50,
+            height: 50,
+            decoration: AppStyles.circleAvatarDecoration(AppColors.borderLight),
             child:
                 pet.profileImages.isNotEmpty
                     ? ClipOval(
                       child: Image.network(
                         pet.profileImages.first,
+                        width: 50,
+                        height: 50,
                         fit: BoxFit.cover,
-                        errorBuilder:
-                            (context, error, stackTrace) => const Icon(
-                              Icons.pets,
-                              color: AppColors.textWhite,
-                              size: 30,
-                            ),
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.pets,
+                            size: 24,
+                            color: AppColors.textSecondary,
+                          );
+                        },
                       ),
                     )
                     : const Icon(
                       Icons.pets,
-                      color: AppColors.textWhite,
-                      size: 30,
+                      size: 24,
+                      color: AppColors.textSecondary,
                     ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            pet.name,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+
+          const SizedBox(width: 12),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  pet.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${pet.species} • ${pet.breed}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            pet.breed,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '${pet.age}세',
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.primary,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildAddPetButton() {
-    return SizedBox(
-      width: 100,
-      child: GestureDetector(
-        onTap: () async {
-          var result = await Navigator.push<Pet>(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const PetRegistrationPage(),
-            ),
-          );
-
-          if (result != null) {
-            _addNewPet(result);
-          }
-        },
-        child: Column(
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: AppStyles.circleAvatarDecoration(
-                AppColors.borderLight,
-              ).copyWith(
-                border: Border.all(
-                  color: AppColors.borderDark,
-                  width: 2,
-                  style: BorderStyle.solid,
-                ),
-              ),
-              child: const Icon(
-                Icons.add,
-                color: AppColors.textSecondary,
-                size: 30,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              '추가하기',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              '새 반려동물',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 2),
-            const Text(
-              '등록하기',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.primary,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMenuSection() {
-    return Container(
-      margin: AppStyles.marginHorizontal20,
-      decoration: AppStyles.cardDecoration,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 20, 20, 16),
-            child: Text(
-              '메뉴',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-          _buildMenuItem('🥖', '펫 건강 관리'),
-          _buildMenuItem('📧', '펫 사진 앨범'),
-          _buildMenuItem('🌻', '설정'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMenuItem(String emoji, String title) {
-    return InkWell(
-      onTap: () {},
-      child: Container(
-        padding: AppStyles.paddingSymmetric16_8.copyWith(
-          left: 20,
-          right: 20,
-          top: 16,
-          bottom: 16,
-        ),
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: AppColors.divider, width: 1),
-          ),
-        ),
-        child: Row(
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 20)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
-            const Icon(
-              Icons.chevron_right,
-              color: AppColors.textSecondary,
-              size: 20,
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -459,19 +471,22 @@ class _ProfilePageState extends State<ProfilePage> {
     return Container(
       margin: AppStyles.marginHorizontal20,
       width: double.infinity,
-      child: ElevatedButton(
+      child: OutlinedButton(
         onPressed: _handleLogout,
-        style: AppStyles.secondaryButtonStyle,
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('🔒'),
-            SizedBox(width: 8),
-            Text(
-              '로그아웃',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-          ],
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          side: const BorderSide(color: Colors.redAccent),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: const Text(
+          '로그아웃',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.redAccent,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );

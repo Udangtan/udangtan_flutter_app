@@ -249,8 +249,8 @@ class AuthService {
       var session = SupabaseService.client.auth.currentSession;
       if (session == null) return null;
 
-      var userId =
-          'email_${session.user.email?.replaceAll('@', '_').replaceAll('.', '_')}';
+      // 실제 Supabase 사용자 UUID 사용
+      var userId = session.user.id;
       return await SupabaseService.getUserById(userId);
     } catch (error) {
       return null;
@@ -339,5 +339,10 @@ class AuthService {
   // 현재 사용자 이메일 가져오기
   static String? getCurrentUserEmail() {
     return SupabaseService.client.auth.currentUser?.email;
+  }
+
+  // 현재 사용자 UUID 가져오기 (주소 관리용)
+  static String? getCurrentUserId() {
+    return SupabaseService.client.auth.currentUser?.id;
   }
 }
