@@ -54,14 +54,11 @@ class _RegisterPageState extends State<RegisterPage> {
       );
 
       if (response != null && mounted) {
-        // 이메일 확인이 비활성화된 경우 (즉시 확인됨)
-        if (response.user!.emailConfirmedAt != null) {
-          // 바로 홈으로 이동
-          await Navigator.pushReplacementNamed(context, '/home');
-        } else {
-          // 이메일 확인이 필요한 경우 인증 페이지로 이동
+        // 이메일 확인이 필요한 경우에만 register-success로 이동
+        if (response.user!.emailConfirmedAt == null) {
           await Navigator.pushReplacementNamed(context, '/register-success');
         }
+        // 이메일이 이미 확인된 경우 AuthStateListener가 자동으로 /home으로 이동 처리
       }
     } catch (e) {
       if (mounted) {
