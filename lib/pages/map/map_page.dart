@@ -169,7 +169,7 @@ class _MapPageState extends State<MapPage> {
                             profileMessage: '',
                           ),
                     );
-                    return '<div style="background-color: white; padding: 8px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 8px;"><img src="${user.profileImageUrl}" style="width: 60px; height: 60px; border-radius: 50%" /><div style="font-weight: bold; font-size: 18px">${user.name}</div><div style="font-size: 13px">${user.age}살 / ${user.gender}</div><div style="font-size: 12px">${user.profileMessage}</div></div>';
+                    return '<div style="background-color: white; padding: 8px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); font-family: "-apple-system", BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;"><img src="${user.profileImageUrl}" style="width: 60px; height: 60px; border-radius: 50%" /><div style="font-weight: bold; font-size: 18px">${user.name}</div><div style="font-size: 13px">${user.age}살 / ${user.gender}</div><div style="font-size: 12px">${user.profileMessage}</div></div>';
                   }(),
                   xAnchor: 0.5,
                   yAnchor: 1,
