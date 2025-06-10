@@ -113,13 +113,17 @@ class _AuthStateListenerState extends State<AuthStateListener> {
 
               // 홈으로 이동 및 환영 메시지 표시
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  Navigator.of(
-                    context,
-                  ).pushNamedAndRemoveUntil('/home', (route) => false);
+                if (mounted && navigatorKey.currentContext != null) {
+                  navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                    '/home',
+                    (route) => false,
+                  );
 
                   // 환영 메시지 표시
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  var messenger = ScaffoldMessenger.of(
+                    navigatorKey.currentContext!,
+                  );
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text('로그인 성공! 환영합니다! 🎉'),
                       backgroundColor: Colors.green,
@@ -130,8 +134,11 @@ class _AuthStateListenerState extends State<AuthStateListener> {
               });
             } catch (e) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                if (mounted && navigatorKey.currentContext != null) {
+                  var messenger = ScaffoldMessenger.of(
+                    navigatorKey.currentContext!,
+                  );
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text('로그인 처리 중 오류가 발생했습니다: ${e.toString()}'),
                       backgroundColor: Colors.redAccent,
@@ -143,10 +150,11 @@ class _AuthStateListenerState extends State<AuthStateListener> {
             }
           } else if (event == AuthChangeEvent.signedOut) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                Navigator.of(
-                  context,
-                ).pushNamedAndRemoveUntil('/welcome', (route) => false);
+              if (mounted && navigatorKey.currentContext != null) {
+                navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                  '/welcome',
+                  (route) => false,
+                );
               }
             });
           }
