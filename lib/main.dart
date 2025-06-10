@@ -90,9 +90,8 @@ class _AuthStateListenerState extends State<AuthStateListener> {
 
           if (event == AuthChangeEvent.signedIn && session != null) {
             try {
-              // 이메일 로그인 사용자 정보 처리
-              var userId =
-                  'email_${session.user.email?.replaceAll('@', '_').replaceAll('.', '_')}';
+              // 실제 Supabase UUID 사용
+              var userId = session.user.id;
 
               // 기존 사용자 확인
               var existingUser = await SupabaseService.getUserById(userId);
@@ -100,7 +99,7 @@ class _AuthStateListenerState extends State<AuthStateListener> {
               if (existingUser == null) {
                 var newUser = app_user.User(
                   id: userId,
-                  email: session.user.email ?? '$userId@example.com',
+                  email: session.user.email ?? '',
                   name: session.user.userMetadata?['name'] ?? '사용자',
                   profileImageUrl: '',
                   provider: 'email',
@@ -162,7 +161,7 @@ class _AuthStateListenerState extends State<AuthStateListener> {
         .onError((error) {
           // Supabase 인증 오류 처리 (딥링크 토큰 만료 등)
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
+            if (mounted && navigatorKey.currentContext != null) {
               String errorMessage = '인증 처리 중 오류가 발생했습니다.';
 
               if (error.toString().contains('otp_expired') ||
@@ -172,7 +171,7 @@ class _AuthStateListenerState extends State<AuthStateListener> {
                 errorMessage = '❌ 인증이 거부되었습니다.\n다시 시도해주세요.';
               }
 
-              ScaffoldMessenger.of(context).showSnackBar(
+              ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
                 SnackBar(
                   content: Text(errorMessage),
                   backgroundColor: Colors.orange,

@@ -18,6 +18,7 @@ class _AddressManagementPageState extends State<AddressManagementPage> {
   List<UserLocation> _addresses = [];
   bool _isLoading = false;
   String? _userId;
+  bool _hasAddressChanged = false;
 
   @override
   void initState() {
@@ -71,6 +72,7 @@ class _AddressManagementPageState extends State<AddressManagementPage> {
     try {
       await LocationService.setDefaultAddress(address.id, _userId!);
       await _loadAddresses();
+      _hasAddressChanged = true;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -105,6 +107,7 @@ class _AddressManagementPageState extends State<AddressManagementPage> {
 
     if (result != null) {
       await _loadAddresses();
+      _hasAddressChanged = true;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -141,6 +144,7 @@ class _AddressManagementPageState extends State<AddressManagementPage> {
       try {
         await LocationService.deleteAddress(address.id);
         await _loadAddresses();
+        _hasAddressChanged = true;
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -174,6 +178,7 @@ class _AddressManagementPageState extends State<AddressManagementPage> {
 
     if (result != null) {
       await _loadAddresses();
+      _hasAddressChanged = true;
     }
   }
 
@@ -181,9 +186,15 @@ class _AddressManagementPageState extends State<AddressManagementPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
-      appBar: const CommonAppBar(
+      appBar: CommonAppBar(
         title: '주소 관리',
         automaticallyImplyLeading: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () {
+            Navigator.pop(context, _hasAddressChanged);
+          },
+        ),
       ),
       body: Column(
         children: [

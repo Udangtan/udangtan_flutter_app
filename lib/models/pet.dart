@@ -11,21 +11,23 @@ class Pet {
     required this.personality,
     this.description,
     this.isNeutered,
-    this.isVaccinated,
+    this.vaccinationStatus,
     this.weight,
     this.size,
     this.activityLevel,
     this.locationCity,
     this.locationDistrict,
-    this.locationLatitude,
-    this.locationLongitude,
-    this.isActive = true,
+    this.latitude,
+    this.longitude,
+    this.isAvailable = true,
     this.createdAt,
     this.updatedAt,
     this.ownerName,
     this.ownerProfileImage,
+    this.ownerAddress,
     this.ownerCity,
     this.ownerDistrict,
+    this.distanceKm,
   });
 
   factory Pet.fromJson(Map<String, dynamic> json) {
@@ -48,16 +50,16 @@ class Pet {
               .toList() ??
           [],
       description: json['description'] as String?,
-      isNeutered: json['is_neutered'] as bool?,
-      isVaccinated: json['is_vaccinated'] as bool?,
+      isNeutered: json['is_neutered'] as String?,
+      vaccinationStatus: json['vaccination_status'] as String?,
       weight: (json['weight'] as num?)?.toDouble(),
       size: json['size'] as String?,
       activityLevel: json['activity_level'] as String?,
       locationCity: json['location_city'] as String?,
       locationDistrict: json['location_district'] as String?,
-      locationLatitude: (json['location_latitude'] as num?)?.toDouble(),
-      locationLongitude: (json['location_longitude'] as num?)?.toDouble(),
-      isActive: json['is_active'] as bool? ?? true,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
+      isAvailable: json['is_available'] as bool? ?? true,
       createdAt:
           json['created_at'] != null
               ? DateTime.parse(json['created_at'] as String)
@@ -68,8 +70,10 @@ class Pet {
               : null,
       ownerName: json['owner_name'] as String?,
       ownerProfileImage: json['owner_profile_image'] as String?,
+      ownerAddress: json['owner_address'] as String?,
       ownerCity: json['owner_city'] as String?,
       ownerDistrict: json['owner_district'] as String?,
+      distanceKm: (json['distance_km'] as num?)?.toDouble(),
     );
   }
 
@@ -83,23 +87,26 @@ class Pet {
   final List<String> profileImages;
   final List<String> personality;
   final String? description;
-  final bool? isNeutered;
-  final bool? isVaccinated;
+  final String? isNeutered; // '완료', '안함', '모름'
+  final String? vaccinationStatus; // '완료', '미완료', '진행중', '모름'
   final double? weight;
   final String? size;
   final String? activityLevel;
   final String? locationCity;
   final String? locationDistrict;
-  final double? locationLatitude;
-  final double? locationLongitude;
-  final bool isActive;
+  final double? latitude;
+  final double? longitude;
+  final bool isAvailable;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+  // Owner 정보 (JOIN 결과)
   final String? ownerName;
   final String? ownerProfileImage;
+  final String? ownerAddress;
   final String? ownerCity;
   final String? ownerDistrict;
+  final double? distanceKm;
 
   Map<String, dynamic> toJson() {
     return {
@@ -114,15 +121,15 @@ class Pet {
       'personality': personality,
       if (description != null) 'description': description,
       if (isNeutered != null) 'is_neutered': isNeutered,
-      if (isVaccinated != null) 'is_vaccinated': isVaccinated,
+      if (vaccinationStatus != null) 'vaccination_status': vaccinationStatus,
       if (weight != null) 'weight': weight,
       if (size != null) 'size': size,
       if (activityLevel != null) 'activity_level': activityLevel,
       if (locationCity != null) 'location_city': locationCity,
       if (locationDistrict != null) 'location_district': locationDistrict,
-      if (locationLatitude != null) 'location_latitude': locationLatitude,
-      if (locationLongitude != null) 'location_longitude': locationLongitude,
-      'is_active': isActive,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      'is_available': isAvailable,
     };
   }
 
@@ -137,22 +144,24 @@ class Pet {
     List<String>? profileImages,
     List<String>? personality,
     String? description,
-    bool? isNeutered,
-    bool? isVaccinated,
+    String? isNeutered,
+    String? vaccinationStatus,
     double? weight,
     String? size,
     String? activityLevel,
     String? locationCity,
     String? locationDistrict,
-    double? locationLatitude,
-    double? locationLongitude,
-    bool? isActive,
+    double? latitude,
+    double? longitude,
+    bool? isAvailable,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? ownerName,
     String? ownerProfileImage,
+    String? ownerAddress,
     String? ownerCity,
     String? ownerDistrict,
+    double? distanceKm,
   }) {
     return Pet(
       id: id ?? this.id,
@@ -166,21 +175,23 @@ class Pet {
       personality: personality ?? this.personality,
       description: description ?? this.description,
       isNeutered: isNeutered ?? this.isNeutered,
-      isVaccinated: isVaccinated ?? this.isVaccinated,
+      vaccinationStatus: vaccinationStatus ?? this.vaccinationStatus,
       weight: weight ?? this.weight,
       size: size ?? this.size,
       activityLevel: activityLevel ?? this.activityLevel,
       locationCity: locationCity ?? this.locationCity,
       locationDistrict: locationDistrict ?? this.locationDistrict,
-      locationLatitude: locationLatitude ?? this.locationLatitude,
-      locationLongitude: locationLongitude ?? this.locationLongitude,
-      isActive: isActive ?? this.isActive,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      isAvailable: isAvailable ?? this.isAvailable,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       ownerName: ownerName ?? this.ownerName,
       ownerProfileImage: ownerProfileImage ?? this.ownerProfileImage,
+      ownerAddress: ownerAddress ?? this.ownerAddress,
       ownerCity: ownerCity ?? this.ownerCity,
       ownerDistrict: ownerDistrict ?? this.ownerDistrict,
+      distanceKm: distanceKm ?? this.distanceKm,
     );
   }
 
@@ -199,6 +210,21 @@ class Pet {
   int get hashCode {
     return id.hashCode;
   }
+
+  // Helper getters
+  bool get isNeuteredComplete => isNeutered == '완료';
+  bool get isVaccinated => vaccinationStatus == '완료';
+
+  // 구버전 호환성을 위한 getter들 (deprecated)
+  @Deprecated('Use isNeutered instead')
+  bool? get isNeuteredOld =>
+      isNeutered == '완료' ? true : (isNeutered == '안함' ? false : null);
+
+  @Deprecated('Use vaccinationStatus instead')
+  bool? get isVaccinatedOld =>
+      vaccinationStatus == '완료'
+          ? true
+          : (vaccinationStatus == '미완료' ? false : null);
 
   static const List<String> personalityOptions = [
     '활발함',

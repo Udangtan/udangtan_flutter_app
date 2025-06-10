@@ -6,6 +6,8 @@ import 'package:udangtan_flutter_app/pages/home/home_page.dart';
 import 'package:udangtan_flutter_app/pages/map/map_page.dart';
 import 'package:udangtan_flutter_app/pages/profile/profile_page.dart';
 import 'package:udangtan_flutter_app/pages/snacks/snacks_page.dart';
+import 'package:udangtan_flutter_app/services/auth_service.dart';
+import 'package:udangtan_flutter_app/services/pet_service.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -52,12 +54,42 @@ class _MainNavigationState extends State<MainNavigation>
     }
   }
 
-  void _onPetLiked(Pet pet) {
-    setState(() {
-      if (!_likedPets.any((likedPet) => likedPet.id == pet.id)) {
-        _likedPets.add(pet);
+  Future<void> _onPetLiked(Pet pet) async {
+    // 실제 DB에 좋아요 저장
+    try {
+      var userId = AuthService.getCurrentUserId();
+      if (userId != null && pet.id != null) {
+        await PetService.likePet(userId, pet.id!);
+
+        setState(() {
+          if (!_likedPets.any((likedPet) => likedPet.id == pet.id)) {
+            _likedPets.add(pet);
+          }
+        });
+
+        // 성공 메시지 표시
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${pet.name}에게 간식을 주었습니다! 🍖'),
+              backgroundColor: const Color(0xFF6C5CE7),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       }
-    });
+    } catch (e) {
+      // 에러 메시지 표시
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('간식주기 실패: $e'),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   void _onSwipeStateChanged(bool isActive, double opacity) {
@@ -77,14 +109,10 @@ class _MainNavigationState extends State<MainNavigation>
             onPetLiked: _onPetLiked,
             onSwipeStateChanged: _onSwipeStateChanged,
           ),
-          SnacksPage(
-            likedPets: _likedPets,
-            currentNavIndex: _currentIndex,
-            onNavTap: _onNavTap,
-          ),
+          const SnacksPage(),
           MapPage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),
           ChatListPage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),
-          ProfilePage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),
+          const ProfilePage(),
         ],
       ),
       bottomNavigationBar: Container(
