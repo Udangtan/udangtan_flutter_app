@@ -133,11 +133,12 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
           ),
         );
 
-        unawaited(
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/welcome', (route) => false),
-        );
+        // 수동 라우팅 제거 - AuthStateListener가 처리
+        // unawaited(
+        //   Navigator.of(
+        //     context,
+        //   ).pushNamedAndRemoveUntil('/welcome', (route) => false),
+        // );
       }
     } catch (e) {
       if (mounted) {
