@@ -4,6 +4,7 @@ import 'package:udangtan_flutter_app/features/home/widgets/pet_card.dart';
 import 'package:udangtan_flutter_app/features/home/widgets/swipe_indicator.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
 import 'package:udangtan_flutter_app/services/pet_service.dart';
+import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
 
 class PetCardStack extends StatefulWidget {
   const PetCardStack({
@@ -50,8 +51,14 @@ class PetCardStackState extends State<PetCardStack>
   }
 
   Future<void> _initializeCards() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      _allPets = await PetService.getAllPets();
+      // 사용자 위치 기반 5km 반경 내 펫들 조회
+      _allPets = await PetService.getPetsNearby(radiusKm: 5.0);
+
       if (_allPets.isNotEmpty) {
         _cardStack = List.from(_allPets.take(maxCards));
       } else {
@@ -63,8 +70,19 @@ class PetCardStackState extends State<PetCardStack>
         _isLoading = false;
       });
     } catch (e) {
-      _allPets = [];
-      _cardStack = [];
+      // 위치 기반 검색 실패 시 전체 펫 목록으로 폴백
+      try {
+        _allPets = await PetService.getAllPets();
+        if (_allPets.isNotEmpty) {
+          _cardStack = List.from(_allPets.take(maxCards));
+        } else {
+          _allPets = [];
+          _cardStack = [];
+        }
+      } catch (e2) {
+        _allPets = [];
+        _cardStack = [];
+      }
       _currentIndex = 0;
       setState(() {
         _isLoading = false;
@@ -82,6 +100,11 @@ class PetCardStackState extends State<PetCardStack>
   void simulateSwipe(SwipeResult result) {
     if (_cardStack.isEmpty || _animationController.isAnimating) return;
     _handleSwipe(result);
+  }
+
+  /// 외부에서 호출할 수 있는 새로고침 메소드
+  void refreshPets() {
+    _initializeCards();
   }
 
   void _handleSwipe(SwipeResult result) {
@@ -124,20 +147,85 @@ class PetCardStackState extends State<PetCardStack>
     }
 
     if (_cardStack.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.pets, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              '표시할 펫이 없습니다',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.pets, size: 64, color: AppColors.primary),
             ),
-            SizedBox(height: 8),
-            Text(
-              '새로운 펫이 등록되면 알려드릴게요!',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+            const SizedBox(height: 24),
+            const Text(
+              '5km 반경 내 펫이 없습니다',
+              style: TextStyle(
+                fontSize: 20,
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              '반경을 넓히거나 다른 지역의\n펫 친구들을 찾아보세요!',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            Container(
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
+                onPressed: refreshPets,
+                icon: const Icon(Icons.refresh, color: Colors.white),
+                label: const Text(
+                  '새로고침',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+              ),
             ),
           ],
         ),

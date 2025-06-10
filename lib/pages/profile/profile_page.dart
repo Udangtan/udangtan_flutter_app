@@ -1,13 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:udangtan_flutter_app/models/pet.dart';
 import 'package:udangtan_flutter_app/models/user.dart' as app_user;
 import 'package:udangtan_flutter_app/pages/profile/address_management_page.dart';
-import 'package:udangtan_flutter_app/pages/profile/pet_registration_complete_page.dart';
 import 'package:udangtan_flutter_app/pages/profile/pet_registration_page.dart';
 import 'package:udangtan_flutter_app/services/auth_service.dart';
-import 'package:udangtan_flutter_app/services/location_service.dart';
 import 'package:udangtan_flutter_app/services/pet_service.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_styles.dart';
@@ -15,74 +15,108 @@ import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
 import 'package:udangtan_flutter_app/shared/widgets/location_display_widget.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({
-    super.key,
-    required this.currentNavIndex,
-    required this.onNavTap,
-  });
-
-  final int currentNavIndex;
-  final Function(int) onNavTap;
+  const ProfilePage({super.key});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
-  List<Pet> myPets = [];
+class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   Session? _currentSession;
   app_user.User? _currentUser;
+  List<Pet> myPets = [];
+  bool _isLoading = true;
+  bool _isPetsLoading = false;
+
   final GlobalKey<State<LocationDisplayWidget>> _locationWidgetKey =
       GlobalKey<State<LocationDisplayWidget>>();
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_loadProfile());
   }
 
-  Future<void> _loadUserData() async {
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // 앱이 포그라운드로 돌아올 때 펫 목록 갱신
+      _loadUserPets();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 위젯이 다시 빌드될 때마다 펫 목록 갱신
+    if (_currentUser != null) {
+      _loadUserPets();
+    }
+  }
+
+  Future<void> _loadProfile() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      var session = await AuthService.getCurrentSession();
-      var user = await AuthService.getCurrentUser();
+      var currentUser = await AuthService.getCurrentUser();
 
-      setState(() {
-        _currentSession = session;
-        _currentUser = user;
-      });
-
-      if (user != null) {
-        await Future.wait([_loadPets(user.id), _loadDefaultAddress(user.id)]);
-      } else {
+      if (currentUser != null) {
         setState(() {
-          myPets = [];
+          _currentUser = currentUser;
+          _isLoading = false;
+        });
+        await _loadUserPets();
+      } else {
+        if (mounted) {
+          await AuthService.logout();
+          if (mounted) {
+            unawaited(Navigator.pushReplacementNamed(context, '/welcome'));
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadUserPets() async {
+    if (_currentUser == null) return;
+
+    setState(() {
+      _isPetsLoading = true;
+    });
+
+    try {
+      var pets = await PetService.getPetsByUser(_currentUser!.id);
+      if (mounted) {
+        setState(() {
+          myPets = pets;
+          _isPetsLoading = false;
         });
       }
     } catch (e) {
-      setState(() {
-        myPets = [];
-      });
-    }
-  }
-
-  Future<void> _loadPets(String userId) async {
-    try {
-      List<Pet> pets = await PetService.getPetsByUser(userId);
-      setState(() {
-        myPets = pets;
-      });
-    } catch (e) {
-      setState(() {
-        myPets = [];
-      });
-    }
-  }
-
-  Future<void> _loadDefaultAddress(String userId) async {
-    try {
-      await LocationService.getDefaultAddress(userId);
-    } catch (e) {
-      // Handle error silently
+      if (mounted) {
+        setState(() {
+          myPets = [];
+          _isPetsLoading = false;
+        });
+      }
     }
   }
 
@@ -99,9 +133,11 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         );
 
-        await Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/welcome', (route) => false);
+        unawaited(
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/welcome', (route) => false),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -115,22 +151,16 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  void _addNewPet(Pet newPet) {
-    setState(() {
-      myPets.add(newPet);
-    });
-  }
-
   Future<void> _navigateToAddressManagement() async {
     var userId = AuthService.getCurrentUserId();
 
     if (userId != null) {
-      var result = await Navigator.of(context).push(
+      var result = await Navigator.of(context).push<bool>(
         MaterialPageRoute(builder: (context) => const AddressManagementPage()),
       );
 
-      if (result != null) {
-        await _loadDefaultAddress(userId);
+      // 주소 변경이 있었다면 페이지 새로고침
+      if (result == true) {
         setState(() {});
       }
     } else {
@@ -145,6 +175,18 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.scaffoldBackground,
+        appBar: CommonAppBar(title: '마이페이지', automaticallyImplyLeading: false),
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
       appBar: const CommonAppBar(
@@ -306,38 +348,41 @@ class _ProfilePageState extends State<ProfilePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                '내 반려동물',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
+              Row(
+                children: [
+                  const Text(
+                    '내 반려동물',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  if (myPets.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${myPets.length}마리',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
               GestureDetector(
-                onTap: () async {
-                  if (_currentUser != null) {
-                    var result = await Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const PetRegistrationPage(),
-                      ),
-                    );
-
-                    if (result is Pet) {
-                      _addNewPet(result);
-
-                      if (mounted) {
-                        await Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder:
-                                (context) =>
-                                    PetRegistrationCompletePage(pet: result),
-                          ),
-                        );
-                      }
-                    }
-                  }
-                },
+                onTap: _addPet,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -367,7 +412,30 @@ class _ProfilePageState extends State<ProfilePage> {
             ],
           ),
           const SizedBox(height: 16),
-          if (myPets.isEmpty)
+          if (_isPetsLoading)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(40),
+              decoration: AppStyles.cardDecoration,
+              child: const Column(
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    '반려동물 정보를 불러오는 중...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else if (myPets.isEmpty)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(40),
@@ -395,7 +463,53 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             )
           else
-            ...myPets.map((pet) => _buildPetCard(pet)),
+            Column(
+              children: [
+                SizedBox(
+                  height: 200,
+                  child: PageView.builder(
+                    controller: PageController(
+                      viewportFraction: 0.85,
+                      initialPage: 0,
+                    ),
+                    itemCount: myPets.length,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        margin: const EdgeInsets.only(right: 12),
+                        child: _buildPetCard(myPets[index]),
+                      );
+                    },
+                  ),
+                ),
+                if (myPets.length > 1) ...[
+                  const SizedBox(height: 12),
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.swipe_left,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        '좌우로 스와이프',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(
+                        Icons.swipe_right,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
         ],
       ),
     );
@@ -404,59 +518,188 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildPetCard(Pet pet) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: AppStyles.cardDecoration,
-      child: Row(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: AppStyles.circleAvatarDecoration(AppColors.borderLight),
-            child:
-                pet.profileImages.isNotEmpty
-                    ? ClipOval(
-                      child: Image.network(
-                        pet.profileImages.first,
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
-                            Icons.pets,
-                            size: 24,
-                            color: AppColors.textSecondary,
-                          );
-                        },
-                      ),
-                    )
-                    : const Icon(
-                      Icons.pets,
-                      size: 24,
-                      color: AppColors.textSecondary,
-                    ),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
-
-          const SizedBox(width: 12),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  pet.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    width: 2,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${pet.species} • ${pet.breed}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
+                child:
+                    pet.profileImages.isNotEmpty
+                        ? ClipRRect(
+                          borderRadius: BorderRadius.circular(13),
+                          child: Image.network(
+                            pet.profileImages.first,
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(
+                                Icons.pets,
+                                size: 30,
+                                color: AppColors.primary,
+                              );
+                            },
+                          ),
+                        )
+                        : const Icon(
+                          Icons.pets,
+                          size: 30,
+                          color: AppColors.primary,
+                        ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            pet.name,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                pet.gender == '수컷'
+                                    ? Colors.blue.withValues(alpha: 0.1)
+                                    : Colors.pink.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            pet.gender,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color:
+                                  pet.gender == '수컷'
+                                      ? Colors.blue[700]
+                                      : Colors.pink[700],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${pet.breed} • ${pet.age}살',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.scaffoldBackground,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.favorite,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        pet.personality.isNotEmpty
+                            ? pet.personality.first
+                            : '성격',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(width: 1, height: 30, color: Colors.grey[300]),
+                Expanded(
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.monitor_weight,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        pet.weight != null ? '${pet.weight}kg' : '미등록',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(width: 1, height: 30, color: Colors.grey[300]),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Icon(
+                        pet.isNeuteredComplete
+                            ? Icons.check_circle
+                            : Icons.help,
+                        size: 16,
+                        color:
+                            pet.isNeuteredComplete
+                                ? Colors.green
+                                : AppColors.textSecondary,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        pet.isNeuteredComplete ? '중성화' : '미완료',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -490,5 +733,42 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
     );
+  }
+
+  Future<void> _addPet() async {
+    if (_currentUser == null) {
+      return;
+    }
+
+    try {
+      var result = await Navigator.push<dynamic>(
+        context,
+        MaterialPageRoute(builder: (context) => const PetRegistrationPage()),
+      );
+
+      // Pet 객체가 반환되거나 true 값이 반환되면 펫 목록 새로고침
+      if (result != null) {
+        await _loadUserPets();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('새로운 반려동물이 등록되었습니다! 🎉'),
+              backgroundColor: Color(0xFF6C5CE7),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('펫 추가 중 오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

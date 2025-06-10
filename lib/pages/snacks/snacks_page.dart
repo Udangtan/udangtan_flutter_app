@@ -1,20 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
+import 'package:udangtan_flutter_app/services/auth_service.dart';
 import 'package:udangtan_flutter_app/services/pet_service.dart';
-import 'package:udangtan_flutter_app/services/supabase_service.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
+import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
 
 class SnacksPage extends StatefulWidget {
-  const SnacksPage({
-    super.key,
-    required this.likedPets,
-    required this.currentNavIndex,
-    required this.onNavTap,
-  });
-
-  final List<Pet> likedPets;
-  final int currentNavIndex;
-  final Function(int) onNavTap;
+  const SnacksPage({super.key});
 
   @override
   State<SnacksPage> createState() => _SnacksPageState();
@@ -23,6 +15,7 @@ class SnacksPage extends StatefulWidget {
 class _SnacksPageState extends State<SnacksPage> {
   List<Pet> _likedPets = [];
   bool _isLoading = true;
+  String? _currentUserId;
 
   @override
   void initState() {
@@ -31,12 +24,14 @@ class _SnacksPageState extends State<SnacksPage> {
   }
 
   Future<void> _loadLikedPets() async {
+    setState(() => _isLoading = true);
+
     try {
-      var user = SupabaseService.client.auth.currentUser;
-      if (user != null) {
-        var likedPets = await PetService.getLikedPets(user.id);
+      _currentUserId = AuthService.getCurrentUserId();
+      if (_currentUserId != null) {
+        var pets = await PetService.getLikedPets(_currentUserId!);
         setState(() {
-          _likedPets = likedPets;
+          _likedPets = pets;
           _isLoading = false;
         });
       } else {
@@ -50,6 +45,44 @@ class _SnacksPageState extends State<SnacksPage> {
         _likedPets = [];
         _isLoading = false;
       });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('간식함 로드 실패: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _removeLike(Pet pet) async {
+    if (_currentUserId == null || pet.id == null) return;
+
+    try {
+      await PetService.unlikePet(_currentUserId!, pet.id!);
+      setState(() {
+        _likedPets.removeWhere((p) => p.id == pet.id);
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${pet.name}을(를) 간식함에서 제거했습니다'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('제거 실패: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
   }
 
@@ -57,18 +90,8 @@ class _SnacksPageState extends State<SnacksPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          '간식함',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
+      appBar: const CommonAppBar(
+        title: '간식함',
         automaticallyImplyLeading: false,
       ),
       body:
@@ -78,175 +101,163 @@ class _SnacksPageState extends State<SnacksPage> {
                   valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
               )
-              : RefreshIndicator(
-                onRefresh: _loadLikedPets,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '간식',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const Text(
-                          '보낸 친구들',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        _likedPets.isEmpty
-                            ? _buildEmptyState()
-                            : _buildPetGrid(),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              : _likedPets.isEmpty
+              ? _buildEmptyState()
+              : _buildPetGrid(),
     );
   }
 
   Widget _buildEmptyState() {
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.6,
-      child: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.favorite_border, size: 80, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              '새로운 친구들을 만나보세요',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey,
-                fontWeight: FontWeight.w500,
-              ),
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.favorite_border, size: 80, color: Colors.grey[400]),
+          const SizedBox(height: 20),
+          Text(
+            '아직 간식을 준 펫이 없어요',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[600],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            '홈에서 마음에 드는 펫에게\n간식을 주어보세요! 🍖',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[500],
+              height: 1.5,
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildPetGrid() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+    return RefreshIndicator(
+      onRefresh: _loadLikedPets,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: GridView.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.75,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: _likedPets.length,
+          itemBuilder: (context, index) {
+            return _buildPetCard(_likedPets[index]);
+          },
+        ),
       ),
-      itemCount: _likedPets.length,
-      itemBuilder: (context, index) {
-        return _buildPetCard(_likedPets[index]);
-      },
     );
   }
 
   Widget _buildPetCard(Pet pet) {
     return Container(
       decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // 메인 이미지
-            pet.profileImages.isNotEmpty
-                ? Image.network(
-                  pet.profileImages.first,
-                  fit: BoxFit.cover,
-                  errorBuilder:
-                      (context, error, stackTrace) => Container(
-                        color: Colors.grey[200],
-                        child: const Center(
-                          child: Icon(Icons.pets, size: 40, color: Colors.grey),
-                        ),
-                      ),
-                )
-                : Container(
-                  color: Colors.grey[200],
-                  child: const Center(
-                    child: Icon(Icons.pets, size: 40, color: Colors.grey),
-                  ),
-                ),
-
-            // 그라데이션 오버레이
-            Container(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 펫 이미지
+          Expanded(
+            flex: 3,
+            child: Container(
+              width: double.infinity,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.6),
-                  ],
-                  stops: const [0.5, 1.0],
+                color: Colors.grey[200],
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
                 ),
               ),
+              child:
+                  pet.profileImages.isNotEmpty
+                      ? ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          topRight: Radius.circular(16),
+                        ),
+                        child: Image.network(
+                          pet.profileImages.first,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildPlaceholderImage(pet.species);
+                          },
+                        ),
+                      )
+                      : _buildPlaceholderImage(pet.species),
             ),
-
-            // 좋아요 아이콘 (우상단)
-            const Positioned(
-              top: 12,
-              right: 12,
-              child: Icon(Icons.favorite, color: Colors.white, size: 20),
-            ),
-
-            // 하단 정보
-            Positioned(
-              bottom: 12,
-              left: 12,
-              right: 12,
+          ),
+          // 펫 정보
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    '${pet.name}, ${pet.age}세',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          pet.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => _removeLike(pet),
+                        child: const Icon(
+                          Icons.favorite,
+                          color: Colors.red,
+                          size: 20,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
-                  if (pet.personality.isNotEmpty)
+                  Text(
+                    '${pet.species} • ${pet.age}살',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 4),
+                  if (pet.locationCity != null)
                     Text(
-                      pet.personality.first,
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
-                      maxLines: 1,
+                      '${pet.locationCity} ${pet.locationDistrict ?? ''}',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                       overflow: TextOverflow.ellipsis,
                     ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildPlaceholderImage(String species) {
+    IconData icon = species == '강아지' ? Icons.pets : Icons.favorite;
+    return Center(child: Icon(icon, size: 40, color: Colors.grey[400]));
   }
 }

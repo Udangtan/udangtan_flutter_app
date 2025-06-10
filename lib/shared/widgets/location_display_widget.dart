@@ -34,6 +34,11 @@ class _LocationDisplayWidgetState extends State<LocationDisplayWidget> {
     _loadDefaultAddress();
   }
 
+  // 외부에서 호출할 수 있는 새로고침 메서드
+  void refreshLocation() {
+    _loadDefaultAddress();
+  }
+
   Future<void> _loadDefaultAddress() async {
     try {
       var userId = AuthService.getCurrentUserId();
