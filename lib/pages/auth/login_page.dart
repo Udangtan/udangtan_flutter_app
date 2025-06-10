@@ -29,15 +29,15 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
 
     try {
-      var response = await AuthService.signInWithEmail(
+      await AuthService.signInWithEmail(
         email: _emailController.text.trim(),
         password: _passwordController.text,
         context: context,
       );
 
-      if (response != null && response.user != null && mounted) {
-        await Navigator.pushReplacementNamed(context, '/home');
-      }
+      // if (response != null && response.user != null && mounted) {
+      //   await Navigator.pushReplacementNamed(context, '/home');
+      // }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
