@@ -12,15 +12,41 @@ class SnacksPage extends StatefulWidget {
   State<SnacksPage> createState() => _SnacksPageState();
 }
 
-class _SnacksPageState extends State<SnacksPage> {
+class _SnacksPageState extends State<SnacksPage>
+    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   List<Pet> _likedPets = [];
   bool _isLoading = true;
   String? _currentUserId;
+  final bool _isPageVisible = true;
+
+  @override
+  bool get wantKeepAlive => true; // 페이지 상태 유지
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadLikedPets();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && _isPageVisible) {
+      _loadLikedPets();
+    }
+  }
+
+  void refreshData() {
+    if (mounted) {
+      _loadLikedPets();
+    }
   }
 
   Future<void> _loadLikedPets() async {
@@ -29,7 +55,7 @@ class _SnacksPageState extends State<SnacksPage> {
     try {
       _currentUserId = AuthService.getCurrentUserId();
       if (_currentUserId != null) {
-        var pets = await PetService.getLikedPets(_currentUserId!);
+        var pets = await PetService.getLikedPets();
         setState(() {
           _likedPets = pets;
           _isLoading = false;
@@ -88,6 +114,8 @@ class _SnacksPageState extends State<SnacksPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin 요구사항
+
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
       appBar: const CommonAppBar(
@@ -108,31 +136,49 @@ class _SnacksPageState extends State<SnacksPage> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.favorite_border, size: 80, color: Colors.grey[400]),
-          const SizedBox(height: 20),
-          Text(
-            '아직 간식을 준 펫이 없어요',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
+    return RefreshIndicator(
+      onRefresh: _loadLikedPets,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height - 200,
+          child: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.favorite_border, size: 80, color: Colors.grey),
+                SizedBox(height: 20),
+                Text(
+                  '아직 간식을 준 펫이 없어요',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey,
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  '홈에서 마음에 드는 펫에게\n간식을 주어보세요! 🍖',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                    height: 1.5,
+                  ),
+                ),
+                SizedBox(height: 20),
+                Text(
+                  '↓ 아래로 당겨서 새로고침 ↓',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 10),
-          Text(
-            '홈에서 마음에 드는 펫에게\n간식을 주어보세요! 🍖',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[500],
-              height: 1.5,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -241,10 +287,27 @@ class _SnacksPageState extends State<SnacksPage> {
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 4),
-                  if (pet.locationCity != null)
+                  if (pet.ownerName != null)
                     Text(
-                      '${pet.locationCity} ${pet.locationDistrict ?? ''}',
+                      '주인: ${pet.ownerName}',
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  if (pet.ownerName != null) const SizedBox(height: 2),
+                  if (pet.ownerAddress != null)
+                    Text(
+                      pet.ownerAddress!,
                       style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  if (pet.ownerAddress != null) const SizedBox(height: 2),
+                  if (pet.likedAt != null)
+                    Text(
+                      '간식 준 날: ${_formatDate(pet.likedAt!)}',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: AppColors.primary,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                 ],
@@ -259,5 +322,23 @@ class _SnacksPageState extends State<SnacksPage> {
   Widget _buildPlaceholderImage(String species) {
     IconData icon = species == '강아지' ? Icons.pets : Icons.favorite;
     return Center(child: Icon(icon, size: 40, color: Colors.grey[400]));
+  }
+
+  String _formatDate(DateTime date) {
+    var now = DateTime.now();
+    var difference = now.difference(date);
+
+    if (difference.inDays == 0) {
+      return '오늘';
+    } else if (difference.inDays == 1) {
+      return '어제';
+    } else if (difference.inDays < 7) {
+      return '$difference.inDays일 전';
+    } else if (difference.inDays < 30) {
+      var weeks = (difference.inDays / 7).floor();
+      return '$weeks주 전';
+    } else {
+      return '${date.month}/${date.day}';
+    }
   }
 }

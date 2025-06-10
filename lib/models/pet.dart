@@ -28,6 +28,7 @@ class Pet {
     this.ownerCity,
     this.ownerDistrict,
     this.distanceKm,
+    this.likedAt,
   });
 
   factory Pet.fromJson(Map<String, dynamic> json) {
@@ -74,6 +75,10 @@ class Pet {
       ownerCity: json['owner_city'] as String?,
       ownerDistrict: json['owner_district'] as String?,
       distanceKm: (json['distance_km'] as num?)?.toDouble(),
+      likedAt:
+          json['liked_at'] != null
+              ? DateTime.parse(json['liked_at'] as String)
+              : null,
     );
   }
 
@@ -107,6 +112,8 @@ class Pet {
   final String? ownerCity;
   final String? ownerDistrict;
   final double? distanceKm;
+
+  final DateTime? likedAt;
 
   Map<String, dynamic> toJson() {
     return {
@@ -162,6 +169,7 @@ class Pet {
     String? ownerCity,
     String? ownerDistrict,
     double? distanceKm,
+    DateTime? likedAt,
   }) {
     return Pet(
       id: id ?? this.id,
@@ -192,6 +200,7 @@ class Pet {
       ownerCity: ownerCity ?? this.ownerCity,
       ownerDistrict: ownerDistrict ?? this.ownerDistrict,
       distanceKm: distanceKm ?? this.distanceKm,
+      likedAt: likedAt ?? this.likedAt,
     );
   }
 

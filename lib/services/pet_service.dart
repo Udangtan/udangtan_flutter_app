@@ -1,4 +1,6 @@
 import 'dart:math';
+
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
 import 'package:udangtan_flutter_app/services/auth_service.dart';
 import 'package:udangtan_flutter_app/services/supabase_service.dart';
@@ -150,21 +152,69 @@ class PetService {
     }
   }
 
-  static Future<List<Pet>> getLikedPets(String userId) async {
+  static Future<List<Pet>> getLikedPets([String? userId]) async {
     try {
+      var currentUserId = userId ?? AuthService.getCurrentUserId();
+      if (currentUserId == null) {
+        return [];
+      }
+
       var response = await SupabaseService.client
           .from('pet_likes')
           .select('''
-            pet_id,
-            pets (*)
+            created_at,
+            pets!inner(
+              id, owner_id, name, species, breed, age, gender,
+              neutering_status, vaccination_status, personality,
+              profile_images, description, is_available,
+              created_at, updated_at, activity_level, size, weight, is_neutered
+            )
           ''')
-          .eq('user_id', userId)
+          .eq('user_id', currentUserId)
           .order('created_at', ascending: false);
 
-      return response
-          .where((item) => item['pets'] != null)
-          .map<Pet>((item) => Pet.fromJson(item['pets']))
-          .toList();
+      List<Pet> likedPets = [];
+
+      for (var item in response) {
+        try {
+          var petData = item['pets'] as Map<String, dynamic>;
+          var likedAt = item['created_at'] as String;
+
+          var ownerId = petData['owner_id'] as String;
+          var userResponse =
+              await SupabaseService.client
+                  .from('users')
+                  .select('name, profile_image_url')
+                  .eq('id', ownerId)
+                  .maybeSingle();
+
+          var locationResponse =
+              await SupabaseService.client
+                  .from('locations')
+                  .select('address, city, district')
+                  .eq('user_id', ownerId)
+                  .eq('category', 'user_address')
+                  .eq('is_default', true)
+                  .eq('is_active', true)
+                  .maybeSingle();
+
+          var pet = Pet.fromJson({
+            ...petData,
+            'owner_name': userResponse?['name'],
+            'owner_profile_image': userResponse?['profile_image_url'],
+            'owner_address': locationResponse?['address'],
+            'owner_city': locationResponse?['city'],
+            'owner_district': locationResponse?['district'],
+            'liked_at': likedAt,
+          });
+
+          likedPets.add(pet);
+        } catch (e) {
+          continue;
+        }
+      }
+
+      return likedPets;
     } catch (error) {
       throw Exception('좋아요한 펫 목록 조회 실패: $error');
     }
@@ -179,16 +229,20 @@ class PetService {
           .eq('pet_id', petId);
 
       if (existing.isNotEmpty) {
-        return true;
+        return false;
       }
 
       await SupabaseService.client.from('pet_likes').insert({
         'user_id': userId,
         'pet_id': petId,
-        'created_at': DateTime.now().toIso8601String(),
       });
+
       return true;
     } catch (error) {
+      if (error.toString().contains('unique_user_pet_like') ||
+          error.toString().contains('duplicate key')) {
+        return false;
+      }
       throw Exception('펫 좋아요 실패: $error');
     }
   }
@@ -200,16 +254,58 @@ class PetService {
           .delete()
           .eq('user_id', userId)
           .eq('pet_id', petId);
+
       return true;
     } catch (error) {
       throw Exception('펫 좋아요 취소 실패: $error');
     }
   }
 
-  static Future<bool> isPetLiked(String userId, int petId) async {
+  static Future<bool> rejectPet(String userId, int petId) async {
+    try {
+      var existing = await SupabaseService.client
+          .from('pet_rejections')
+          .select()
+          .eq('user_id', userId)
+          .eq('pet_id', petId);
+
+      if (existing.isNotEmpty) {
+        return false;
+      }
+
+      await SupabaseService.client.from('pet_rejections').insert({
+        'user_id': userId,
+        'pet_id': petId,
+      });
+
+      return true;
+    } catch (error) {
+      if (error.toString().contains('unique_user_pet_rejection') ||
+          error.toString().contains('duplicate key')) {
+        return false;
+      }
+      throw Exception('펫 거절 실패: $error');
+    }
+  }
+
+  static Future<bool> unrejectPet(String userId, int petId) async {
+    try {
+      await SupabaseService.client
+          .from('pet_rejections')
+          .delete()
+          .eq('user_id', userId)
+          .eq('pet_id', petId);
+
+      return true;
+    } catch (error) {
+      throw Exception('펫 거절 취소 실패: $error');
+    }
+  }
+
+  static Future<bool> isPetRejected(String userId, int petId) async {
     try {
       var response = await SupabaseService.client
-          .from('pet_likes')
+          .from('pet_rejections')
           .select()
           .eq('user_id', userId)
           .eq('pet_id', petId);
@@ -314,76 +410,43 @@ class PetService {
         throw Exception('로그인이 필요합니다');
       }
 
-      // 새로운 UUID 기반 RPC 함수 사용
       var response = await SupabaseService.client.rpc(
         'get_pets_near_user',
         params: {'target_user_id': currentUserId, 'radius_km': radiusKm},
       );
 
-      if (response == null || (response is List && response.isEmpty)) {
-        return await _fallbackLocationSearch(currentUserId, radiusKm);
+      if (response == null) {
+        return await _getFallbackPets(currentUserId, radiusKm);
       }
 
-      var pets =
-          (response as List).map<Pet>((petData) {
-            var data = petData as Map<String, dynamic>;
-            // UUID 기반 데이터 매핑
-            return Pet.fromJson({
-              'id': data['id'],
-              'owner_id': data['owner_id'],
-              'name': data['name'],
-              'species': data['species'],
-              'breed': data['breed'],
-              'age': data['age'],
-              'gender': data['gender'],
-              'neutering_status': data['neutering_status'],
-              'vaccination_status': data['vaccination_status'],
-              'personality':
-                  data['personality'] is String
-                      ? [data['personality']]
-                      : data['personality'] ?? [],
-              'profile_images':
-                  data['profile_images'] is String
-                      ? [data['profile_images']]
-                      : data['profile_images'] ?? [],
-              'description': data['description'],
-              'is_available': data['is_available'],
-              'created_at': data['created_at'],
-              'updated_at': data['updated_at'],
-              'activity_level': data['activity_level'],
-              'size': data['size'],
-              'weight': data['weight'],
-              'is_neutered': data['is_neutered'],
-              'distance_km': data['distance_km'],
-              'owner_name': data['owner_name'],
-              'owner_address': data['owner_location'],
-            });
-          }).toList();
+      var responseList = response as List<dynamic>;
+      if (responseList.isEmpty) {
+        return await _getFallbackPets(currentUserId, radiusKm);
+      }
 
-      // 거리 순으로 정렬
-      pets.sort((a, b) => (a.distanceKm ?? 0).compareTo(b.distanceKm ?? 0));
+      List<Pet> pets = [];
+      for (var data in responseList) {
+        try {
+          var petData = data as Map<String, dynamic>;
+          var pet = Pet.fromJson(petData);
+          pets.add(pet);
+        } catch (_) {
+          continue;
+        }
+      }
 
       return pets;
-    } catch (error) {
-      // RPC 함수 사용 실패 시 폴백 검색 수행
-      try {
-        var currentUserId = AuthService.getCurrentUserId();
-        if (currentUserId == null) {
-          return [];
-        }
-        return await _fallbackLocationSearch(currentUserId, radiusKm);
-      } catch (fallbackError) {
-        throw Exception('주변 펫 목록 조회 실패: $fallbackError');
-      }
+    } on PostgrestException {
+      return await _getFallbackPets(AuthService.getCurrentUserId()!, radiusKm);
+    } catch (_) {
+      return await _getFallbackPets(AuthService.getCurrentUserId()!, radiusKm);
     }
   }
 
-  // 폴백 위치 기반 검색 함수
-  static Future<List<Pet>> _fallbackLocationSearch(
+  static Future<List<Pet>> _getFallbackPets(
     String currentUserId,
     double radiusKm,
   ) async {
-    // 1. 현재 사용자의 위치 조회
     var userLocationResponse =
         await SupabaseService.client
             .from('locations')
@@ -394,7 +457,6 @@ class PetService {
             .eq('is_active', true)
             .maybeSingle();
 
-    // 기본 주소가 없으면 가장 최근 주소 사용
     userLocationResponse ??=
         await SupabaseService.client
             .from('locations')
@@ -407,7 +469,6 @@ class PetService {
             .maybeSingle();
 
     if (userLocationResponse == null) {
-      // 위치 정보가 없으면 모든 펫 반환 (자신 제외)
       var response = await SupabaseService.client
           .from('pets')
           .select()
@@ -421,7 +482,6 @@ class PetService {
     var userLat = (userLocationResponse['latitude'] as num).toDouble();
     var userLng = (userLocationResponse['longitude'] as num).toDouble();
 
-    // 2. 다른 사용자들의 위치 정보와 펫 정보 조회 (foreign key 없이 수동 조인)
     var petsResponse = await SupabaseService.client
         .from('pets')
         .select('*')
@@ -435,7 +495,6 @@ class PetService {
       try {
         var ownerId = petData['owner_id'] as String;
 
-        // 펫 소유자 정보 조회
         var userResponse =
             await SupabaseService.client
                 .from('users')
@@ -445,7 +504,6 @@ class PetService {
 
         if (userResponse == null) continue;
 
-        // 펫 소유자의 기본 주소 조회
         var locationResponse =
             await SupabaseService.client
                 .from('locations')
@@ -456,7 +514,6 @@ class PetService {
                 .eq('is_active', true)
                 .maybeSingle();
 
-        // 기본 주소가 없으면 가장 최근 주소 사용
         locationResponse ??=
             await SupabaseService.client
                 .from('locations')
@@ -473,18 +530,16 @@ class PetService {
         var petLat = (locationResponse['latitude'] as num).toDouble();
         var petLng = (locationResponse['longitude'] as num).toDouble();
 
-        // 거리 계산
         var distance = _calculateDistance(userLat, userLng, petLat, petLng);
 
         if (distance <= radiusKm) {
-          // Pet 객체에 owner 정보와 거리 정보 추가
           var pet = Pet.fromJson({
             ...petData,
-            'owner_name': userResponse['name'],
-            'owner_profile_image': userResponse['profile_image_url'],
-            'owner_address': locationResponse['address'],
-            'owner_city': locationResponse['city'],
-            'owner_district': locationResponse['district'],
+            'owner_name': userResponse['name'] as String?,
+            'owner_profile_image': userResponse['profile_image_url'] as String?,
+            'owner_address': locationResponse['address'] as String?,
+            'owner_city': locationResponse['city'] as String?,
+            'owner_district': locationResponse['district'] as String?,
             'distance_km': distance,
           });
           nearbyPets.add(pet);
@@ -494,10 +549,36 @@ class PetService {
       }
     }
 
-    // 거리순으로 정렬
     nearbyPets.sort((a, b) => (a.distanceKm ?? 0).compareTo(b.distanceKm ?? 0));
 
-    return nearbyPets;
+    var nearbyPetsFiltered = <Pet>[];
+    for (var pet in nearbyPets) {
+      try {
+        var likedCheck =
+            await SupabaseService.client
+                .from('pet_likes')
+                .select('id')
+                .eq('user_id', currentUserId)
+                .eq('pet_id', pet.id!)
+                .maybeSingle();
+
+        var rejectedCheck =
+            await SupabaseService.client
+                .from('pet_rejections')
+                .select('id')
+                .eq('user_id', currentUserId)
+                .eq('pet_id', pet.id!)
+                .maybeSingle();
+
+        if (likedCheck == null && rejectedCheck == null) {
+          nearbyPetsFiltered.add(pet);
+        }
+      } catch (_) {
+        nearbyPetsFiltered.add(pet);
+      }
+    }
+
+    return nearbyPetsFiltered;
   }
 
   // 거리 계산 함수 (하버사인 공식)
@@ -507,23 +588,23 @@ class PetService {
     double lat2,
     double lon2,
   ) {
-    const double earthRadius = 6371; // 지구 반지름 (km)
+    const double earthRadius = 6371;
 
-    var dLat = _degreesToRadians(lat2 - lat1);
-    var dLon = _degreesToRadians(lon2 - lon1);
+    double dLat = _radians(lat2 - lat1);
+    double dLon = _radians(lon2 - lon1);
 
-    var a =
+    double a =
         sin(dLat / 2) * sin(dLat / 2) +
-        cos(_degreesToRadians(lat1)) *
-            cos(_degreesToRadians(lat2)) *
+        cos(_radians(lat1)) *
+            cos(_radians(lat2)) *
             sin(dLon / 2) *
             sin(dLon / 2);
-    var c = 2 * atan2(sqrt(a), sqrt(1 - a));
 
+    double c = 2 * asin(sqrt(a));
     return earthRadius * c;
   }
 
-  static double _degreesToRadians(double degrees) {
-    return degrees * (pi / 180);
+  static double _radians(double degrees) {
+    return degrees * pi / 180;
   }
 }

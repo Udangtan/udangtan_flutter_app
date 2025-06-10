@@ -55,7 +55,6 @@ class _MainNavigationState extends State<MainNavigation>
   }
 
   Future<void> _onPetLiked(Pet pet) async {
-    // 실제 DB에 좋아요 저장
     try {
       var userId = AuthService.getCurrentUserId();
       if (userId != null && pet.id != null) {
@@ -67,7 +66,6 @@ class _MainNavigationState extends State<MainNavigation>
           }
         });
 
-        // 성공 메시지 표시
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -77,9 +75,10 @@ class _MainNavigationState extends State<MainNavigation>
             ),
           );
         }
+
+        _notifySnacksPageRefresh();
       }
     } catch (e) {
-      // 에러 메시지 표시
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -92,8 +91,8 @@ class _MainNavigationState extends State<MainNavigation>
     }
   }
 
-  void _onSwipeStateChanged(bool isActive, double opacity) {
-    // 현재는 사용하지 않지만 향후 애니메이션 용도로 남겨둠
+  void _notifySnacksPageRefresh() {
+    // 간식 페이지 새로고침 알림
   }
 
   @override
@@ -107,7 +106,6 @@ class _MainNavigationState extends State<MainNavigation>
             currentNavIndex: _currentIndex,
             onNavTap: _onNavTap,
             onPetLiked: _onPetLiked,
-            onSwipeStateChanged: _onSwipeStateChanged,
           ),
           const SnacksPage(),
           MapPage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),

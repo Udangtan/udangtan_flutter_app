@@ -27,7 +27,6 @@ void main() async {
 
   AuthRepository.initialize(appKey: EnvConfig.kakaoJavaScriptAppKey);
 
-  // 딥링크 서비스 초기화
   SimpleDeepLinkService.initialize();
   SimpleDeepLinkService.setNavigatorKey(navigatorKey);
 

@@ -35,7 +35,12 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
     _skeletonAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _skeletonController, curve: Curves.easeInOut),
     );
-    _skeletonController.repeat(reverse: true);
+
+    if (widget.pet.profileImages.isEmpty) {
+      _imageLoaded = true;
+    } else {
+      _skeletonController.repeat(reverse: true);
+    }
   }
 
   @override
@@ -105,7 +110,6 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
-                // 종류와 거리 정보
                 Positioned(
                   top: 24,
                   left: 24,
@@ -138,7 +142,6 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
                           ),
                         ),
                       ),
-                      // 거리 정보 표시
                       if (widget.pet.distanceKm != null)
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -241,7 +244,6 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
                         ),
                       const SizedBox(height: 16),
 
-                      // 소유자 정보
                       if (widget.pet.ownerName != null ||
                           widget.pet.ownerAddress != null)
                         Container(
@@ -331,27 +333,14 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
   }
 
   Widget _buildMainImage() {
-    return widget.pet.profileImages.isNotEmpty
-        ? Image.network(
-          widget.pet.profileImages.first,
-          width: double.infinity,
-          height: double.infinity,
-          fit: BoxFit.cover,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  setState(() {
-                    _imageLoaded = true;
-                  });
-                  _skeletonController.stop();
-                }
-              });
-              return child;
-            }
-            return _buildSkeletonLoader();
-          },
-          errorBuilder: (context, error, stackTrace) {
+    if (widget.pet.profileImages.isNotEmpty) {
+      return Image.network(
+        widget.pet.profileImages.first,
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 setState(() {
@@ -360,20 +349,35 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
                 _skeletonController.stop();
               }
             });
-            return Container(
-              color: Colors.grey[200],
-              child: const Center(
-                child: Icon(Icons.pets, size: 80, color: Colors.grey),
-              ),
-            );
-          },
-        )
-        : Container(
-          color: Colors.grey[200],
-          child: const Center(
-            child: Icon(Icons.pets, size: 80, color: Colors.grey),
-          ),
-        );
+            return child;
+          }
+          return _buildSkeletonLoader();
+        },
+        errorBuilder: (context, error, stackTrace) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                _imageLoaded = true;
+              });
+              _skeletonController.stop();
+            }
+          });
+          return Container(
+            color: Colors.grey[200],
+            child: const Center(
+              child: Icon(Icons.pets, size: 80, color: Colors.grey),
+            ),
+          );
+        },
+      );
+    } else {
+      return Container(
+        color: Colors.grey[200],
+        child: const Center(
+          child: Icon(Icons.pets, size: 80, color: Colors.grey),
+        ),
+      );
+    }
   }
 
   Widget _buildSkeletonLoader() {

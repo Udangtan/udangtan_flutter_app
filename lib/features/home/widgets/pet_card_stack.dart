@@ -56,7 +56,6 @@ class PetCardStackState extends State<PetCardStack>
     });
 
     try {
-      // 사용자 위치 기반 5km 반경 내 펫들 조회
       _allPets = await PetService.getPetsNearby(radiusKm: 5.0);
 
       if (_allPets.isNotEmpty) {
@@ -70,7 +69,6 @@ class PetCardStackState extends State<PetCardStack>
         _isLoading = false;
       });
     } catch (e) {
-      // 위치 기반 검색 실패 시 전체 펫 목록으로 폴백
       try {
         _allPets = await PetService.getAllPets();
         if (_allPets.isNotEmpty) {
@@ -96,15 +94,26 @@ class PetCardStackState extends State<PetCardStack>
     super.dispose();
   }
 
-  /// 외부에서 호출할 수 있는 스와이프 시뮬레이션 메소드
   void simulateSwipe(SwipeResult result) {
     if (_cardStack.isEmpty || _animationController.isAnimating) return;
     _handleSwipe(result);
   }
 
-  /// 외부에서 호출할 수 있는 새로고침 메소드
-  void refreshPets() {
-    _initializeCards();
+  Future<void> refreshCards() async {
+    await _initializeCards();
+  }
+
+  Future<void> refreshPets({bool forceRefresh = false}) async {
+    if (forceRefresh) {
+      setState(() {
+        _allPets.clear();
+        _cardStack.clear();
+        _currentIndex = 0;
+        _isLoading = true;
+      });
+    }
+
+    await _initializeCards();
   }
 
   void _handleSwipe(SwipeResult result) {
@@ -119,17 +128,41 @@ class PetCardStackState extends State<PetCardStack>
     });
 
     widget.onSwipeStateChanged?.call(false, 0.0);
+    _allPets.removeWhere((pet) => pet.id == currentPet.id);
+
+    if (_allPets.isEmpty) {
+      setState(() {
+        _cardStack.clear();
+        _currentIndex = 0;
+      });
+      return;
+    }
+
     _animateCardRemoval();
   }
 
   void _animateCardRemoval() {
     _animationController.forward().then((_) {
       setState(() {
-        _currentIndex = (_currentIndex + 1) % _cardStack.length;
-        var nextPetIndex = (_currentIndex + maxCards - 1) % _allPets.length;
-        if (_cardStack.length == maxCards && _allPets.isNotEmpty) {
-          _cardStack[(_currentIndex + maxCards - 1) % maxCards] =
-              _allPets[nextPetIndex];
+        if (_cardStack.isNotEmpty) {
+          _cardStack.removeAt(_currentIndex % _cardStack.length);
+        }
+
+        if (_allPets.length > _cardStack.length &&
+            _cardStack.length < maxCards) {
+          var nextPetIndex = _cardStack.length;
+          if (nextPetIndex < _allPets.length) {
+            _cardStack.add(_allPets[nextPetIndex]);
+          }
+        }
+
+        if (_currentIndex >= _cardStack.length && _cardStack.isNotEmpty) {
+          _currentIndex = 0;
+        }
+
+        if (_allPets.isEmpty || _cardStack.isEmpty) {
+          _cardStack.clear();
+          _currentIndex = 0;
         }
       });
       _animationController.reset();
@@ -203,7 +236,7 @@ class PetCardStackState extends State<PetCardStack>
                 ],
               ),
               child: ElevatedButton.icon(
-                onPressed: refreshPets,
+                onPressed: () => refreshPets(),
                 icon: const Icon(Icons.refresh, color: Colors.white),
                 label: const Text(
                   '새로고침',
@@ -237,88 +270,99 @@ class PetCardStackState extends State<PetCardStack>
     return Stack(
       alignment: Alignment.center,
       children: [
-        ...List.generate(maxCards, (index) {
-          var cardIndex = (_currentIndex + index) % _cardStack.length;
-          if (cardIndex >= _cardStack.length) return const SizedBox.shrink();
+        ...List.generate(
+          _cardStack.length == 1
+              ? 1
+              : ((_cardStack.length <= maxCards)
+                  ? _cardStack.length
+                  : maxCards),
+          (index) {
+            var cardIndex = (_currentIndex + index) % _cardStack.length;
 
-          var pet = _cardStack[cardIndex];
-          var isTopCard = index == 0;
+            if (cardIndex >= _cardStack.length) {
+              return const SizedBox.shrink();
+            }
 
-          var scale = 0.95 - (index * 0.05);
-          var offsetY = -index * 15.0;
-          var offsetX = index * 3.0;
-          var rotation = 0.0;
-          var opacity = 1.0 - (index * 0.12);
+            var pet = _cardStack[cardIndex];
+            var isTopCard = index == 0;
 
-          return AnimatedBuilder(
-            animation: _animationController,
-            builder: (context, child) {
-              if (isTopCard && _animationController.isAnimating) {
-                var animatedScale = scale * (1 - _cardAnimation.value);
-                var animatedOpacity = opacity * (1 - _cardAnimation.value);
-                return Transform.scale(
-                  scale: animatedScale,
-                  child: Opacity(opacity: animatedOpacity, child: child),
-                );
-              }
+            var scale = 0.95 - (index * 0.05);
+            var offsetY = -index * 15.0;
+            var offsetX = index * 3.0;
+            var rotation = 0.0;
+            var opacity = 1.0 - (index * 0.12);
 
-              if (!isTopCard && _animationController.isAnimating) {
-                var nextScale = 0.95 - ((index - 1) * 0.05);
-                var nextOffsetY = -(index - 1) * 15.0;
-                var nextOffsetX = (index - 1) * 3.0;
-                var nextRotation = 0.0;
-                var nextOpacity = 1.0 - ((index - 1) * 0.12);
+            return AnimatedBuilder(
+              animation: _animationController,
+              builder: (context, child) {
+                if (isTopCard && _animationController.isAnimating) {
+                  var animatedScale = scale * (1 - _cardAnimation.value);
+                  var animatedOpacity = opacity * (1 - _cardAnimation.value);
+                  return Transform.scale(
+                    scale: animatedScale,
+                    child: Opacity(opacity: animatedOpacity, child: child),
+                  );
+                }
 
-                var animatedScale =
-                    scale + (nextScale - scale) * _nextCardAnimation.value;
-                var animatedOffsetY =
-                    offsetY +
-                    (nextOffsetY - offsetY) * _nextCardAnimation.value;
-                var animatedOffsetX =
-                    offsetX +
-                    (nextOffsetX - offsetX) * _nextCardAnimation.value;
-                var animatedRotation =
-                    rotation +
-                    (nextRotation - rotation) * _nextCardAnimation.value;
-                var animatedOpacity =
-                    opacity +
-                    (nextOpacity - opacity) * _nextCardAnimation.value;
+                if (!isTopCard && _animationController.isAnimating) {
+                  var nextScale = 0.95 - ((index - 1) * 0.05);
+                  var nextOffsetY = -(index - 1) * 15.0;
+                  var nextOffsetX = (index - 1) * 3.0;
+                  var nextRotation = 0.0;
+                  var nextOpacity = 1.0 - ((index - 1) * 0.12);
+
+                  var animatedScale =
+                      scale + (nextScale - scale) * _nextCardAnimation.value;
+                  var animatedOffsetY =
+                      offsetY +
+                      (nextOffsetY - offsetY) * _nextCardAnimation.value;
+                  var animatedOffsetX =
+                      offsetX +
+                      (nextOffsetX - offsetX) * _nextCardAnimation.value;
+                  var animatedRotation =
+                      rotation +
+                      (nextRotation - rotation) * _nextCardAnimation.value;
+                  var animatedOpacity =
+                      opacity +
+                      (nextOpacity - opacity) * _nextCardAnimation.value;
+
+                  return Transform.translate(
+                    offset: Offset(animatedOffsetX, animatedOffsetY),
+                    child: Transform.rotate(
+                      angle: animatedRotation,
+                      child: Transform.scale(
+                        scale: animatedScale,
+                        child: Opacity(
+                          opacity: animatedOpacity.clamp(0.0, 1.0),
+                          child: child,
+                        ),
+                      ),
+                    ),
+                  );
+                }
 
                 return Transform.translate(
-                  offset: Offset(animatedOffsetX, animatedOffsetY),
+                  offset: Offset(offsetX, offsetY),
                   child: Transform.rotate(
-                    angle: animatedRotation,
+                    angle: rotation,
                     child: Transform.scale(
-                      scale: animatedScale,
+                      scale: scale,
                       child: Opacity(
-                        opacity: animatedOpacity.clamp(0.0, 1.0),
+                        opacity: opacity.clamp(0.0, 1.0),
                         child: child,
                       ),
                     ),
                   ),
                 );
-              }
-
-              return Transform.translate(
-                offset: Offset(offsetX, offsetY),
-                child: Transform.rotate(
-                  angle: rotation,
-                  child: Transform.scale(
-                    scale: scale,
-                    child: Opacity(
-                      opacity: opacity.clamp(0.0, 1.0),
-                      child: child,
-                    ),
-                  ),
-                ),
-              );
-            },
-            child:
-                isTopCard
+              },
+              child: () {
+                return isTopCard
                     ? _buildTopCard(pet, size, index)
-                    : _buildBackCard(pet, index),
-          );
-        }).reversed,
+                    : _buildBackCard(pet, index);
+              }(),
+            );
+          },
+        ).reversed,
         if (_isDragging)
           Positioned.fill(
             child: Stack(

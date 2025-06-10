@@ -337,6 +337,23 @@ class LocationService {
   static double _degreesToRadians(double degrees) {
     return degrees * (pi / 180);
   }
+
+  /// 사용자가 주소를 등록했는지 확인
+  static Future<bool> hasUserRegisteredAddress(String userId) async {
+    try {
+      var response = await SupabaseService.client
+          .from('locations')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('category', 'user_address')
+          .eq('is_active', true)
+          .limit(1);
+
+      return response.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
 }
 
 class KakaoAddressResult {
