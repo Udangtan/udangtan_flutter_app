@@ -20,9 +20,6 @@ class ChatRoom {
   });
 
   factory ChatRoom.fromJson(Map<String, dynamic> json) {
-    print('ChatRoom.fromJson 호출됨:');
-    print('원본 JSON: $json');
-
     var chatRoom = ChatRoom(
       id: json['id'],
       matchId: json['match_id'],
@@ -48,12 +45,6 @@ class ChatRoom {
       pet2Name: json['pet2_name'],
       chatType: json['chat_type'],
     );
-
-    print('생성된 ChatRoom:');
-    print('  pet1Name: ${chatRoom.pet1Name}');
-    print('  pet2Name: ${chatRoom.pet2Name}');
-    print('  user1Name: ${chatRoom.user1Name}');
-    print('  user2Name: ${chatRoom.user2Name}');
 
     return chatRoom;
   }

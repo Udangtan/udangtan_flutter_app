@@ -5,9 +5,6 @@ import 'package:udangtan_flutter_app/services/supabase_service.dart';
 class ChatService {
   static Future<List<ChatRoom>> getChatRooms(String userId) async {
     try {
-      print('=== getChatRooms 시작 ===');
-      print('userId: $userId');
-
       var response = await SupabaseService.client
           .from('chat_rooms_with_users')
           .select('*')
@@ -15,36 +12,11 @@ class ChatService {
           .eq('is_active', true)
           .order('last_message_at', ascending: false);
 
-      print('조회된 채팅방 개수: ${response.length}');
-
-      for (int i = 0; i < response.length; i++) {
-        var roomData = response[i];
-        print('--- 채팅방 $i ---');
-        print('ID: ${roomData['id']}');
-        print('user1_id: ${roomData['user1_id']}');
-        print('user2_id: ${roomData['user2_id']}');
-        print('user1_name: ${roomData['user1_name']}');
-        print('user2_name: ${roomData['user2_name']}');
-        print('pet1_id: ${roomData['pet1_id']}');
-        print('pet2_id: ${roomData['pet2_id']}');
-        print('pet1_name: ${roomData['pet1_name']}');
-        print('pet2_name: ${roomData['pet2_name']}');
-        print('last_message: ${roomData['last_message']}');
-        print('---');
-      }
-
       var chatRooms =
           response.map<ChatRoom>((json) => ChatRoom.fromJson(json)).toList();
 
-      print('변환된 ChatRoom 객체들:');
-      for (var room in chatRooms) {
-        print('ChatRoom: ${room.toString()}');
-      }
-
-      print('=== getChatRooms 완료 ===');
       return chatRooms;
     } catch (error) {
-      print('getChatRooms 에러: $error');
       return [];
     }
   }
@@ -77,11 +49,7 @@ class ChatService {
     required int targetPetId,
   }) async {
     try {
-      print('=== findOrCreatePetChatRoom 시작 ===');
-      print('currentUserId: $currentUserId');
-      print('targetPetId: $targetPetId');
-
-      // 1. 타겟 펫 정보 조회
+      // 타겟 펫 정보 조회
       var petResponse =
           await SupabaseService.client
               .from('pets')
@@ -90,17 +58,14 @@ class ChatService {
               .single();
 
       String targetPetOwnerId = petResponse['owner_id'];
-      String targetPetName = petResponse['name'];
+      // String targetPetName = petResponse['name'];
 
-      print('타겟 펫 주인: $targetPetOwnerId');
-      print('타겟 펫 이름: $targetPetName');
-
-      // 2. 자기 자신의 펫인지 확인
+      // 자기 자신의 펫인지 확인
       if (targetPetOwnerId == currentUserId) {
         throw Exception('자신의 펫과는 채팅할 수 없습니다');
       }
 
-      // 3. 현재 사용자의 펫 정보 조회
+      // 현재 사용자의 펫 정보 조회
       var myPetResponse = await SupabaseService.client
           .from('pets')
           .select('id, name')
@@ -113,15 +78,8 @@ class ChatService {
       }
 
       int myPetId = myPetResponse.first['id'];
-      String myPetName = myPetResponse.first['name'];
+      // String myPetName = myPetResponse.first['name'];
 
-      print('내 펫 ID: $myPetId');
-      print('내 펫 이름: $myPetName');
-
-      // 4. 특정 펫들 간의 기존 채팅방 확인 (펫 ID 기준)
-      print('기존 채팅방 검색 중... (내 펫: $myPetId, 상대 펫: $targetPetId)');
-
-      // 방향 1: 내 펫이 pet1, 상대 펫이 pet2
       var existingRoom1 = await SupabaseService.client
           .from('chat_rooms_with_users')
           .select('*')
@@ -131,11 +89,10 @@ class ChatService {
           .limit(1);
 
       if (existingRoom1.isNotEmpty) {
-        print('기존 채팅방 발견 (방향1): ${existingRoom1.first['id']}');
         return ChatRoom.fromJson(existingRoom1.first);
       }
 
-      // 방향 2: 상대 펫이 pet1, 내 펫이 pet2
+      // 상대 펫이 pet1, 내 펫이 pet2
       var existingRoom2 = await SupabaseService.client
           .from('chat_rooms_with_users')
           .select('*')
@@ -145,14 +102,9 @@ class ChatService {
           .limit(1);
 
       if (existingRoom2.isNotEmpty) {
-        print('기존 채팅방 발견 (방향2): ${existingRoom2.first['id']}');
         return ChatRoom.fromJson(existingRoom2.first);
       }
 
-      print('기존 채팅방이 없음. 새 채팅방 생성');
-      print('생성할 채팅방: 내 펫($myPetId) <-> 상대 펫($targetPetId)');
-
-      // 5. 새 채팅방 생성
       var newChatRoomResponse =
           await SupabaseService.client
               .from('chat_rooms')
@@ -167,22 +119,13 @@ class ChatService {
               .select()
               .single();
 
-      print('채팅방 생성 완료: ${newChatRoomResponse['id']}');
-
-      // 6. 생성된 채팅방을 뷰에서 다시 조회
+      // 생성된 채팅방을 뷰에서 다시 조회
       var chatRoomWithUsersResponse =
           await SupabaseService.client
               .from('chat_rooms_with_users')
               .select('*')
               .eq('id', newChatRoomResponse['id'])
               .single();
-
-      print('최종 채팅방 정보:');
-      print('  - 채팅방 ID: ${chatRoomWithUsersResponse['id']}');
-      print('  - pet1_id: ${chatRoomWithUsersResponse['pet1_id']}');
-      print('  - pet2_id: ${chatRoomWithUsersResponse['pet2_id']}');
-      print('  - pet1_name: ${chatRoomWithUsersResponse['pet1_name']}');
-      print('  - pet2_name: ${chatRoomWithUsersResponse['pet2_name']}');
 
       return ChatRoom.fromJson(chatRoomWithUsersResponse);
     } catch (e) {

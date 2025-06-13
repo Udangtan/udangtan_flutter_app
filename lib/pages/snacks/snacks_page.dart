@@ -152,8 +152,6 @@ class _SnacksPageState extends State<SnacksPage>
     );
 
     try {
-      print('채팅방 생성 시도: 펫 ${pet.name} (ID: ${pet.id})');
-
       var chatRoom = await ChatService.findOrCreatePetChatRoom(
         currentUserId: _currentUserId!,
         targetPetId: pet.id!,
@@ -163,16 +161,12 @@ class _SnacksPageState extends State<SnacksPage>
       if (mounted) Navigator.of(context).pop();
 
       if (chatRoom != null && mounted) {
-        print('채팅방으로 이동: ${chatRoom.id}');
-
         await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => ChatDetailPage(chatRoom: chatRoom),
           ),
         );
       } else {
-        print('채팅방이 null로 반환됨');
-
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
