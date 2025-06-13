@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:udangtan_flutter_app/models/chat_room.dart';
 import 'package:udangtan_flutter_app/pages/chat/chat_detail_page.dart';
 import 'package:udangtan_flutter_app/services/chat_service.dart';
@@ -41,6 +40,7 @@ class _ChatListPageState extends State<ChatListPage> {
         });
       }
     } catch (e) {
+      print('채팅방 로드 실패: $e');
       setState(() {
         _isLoading = false;
       });
@@ -77,20 +77,28 @@ class _ChatListPageState extends State<ChatListPage> {
   }
 
   Widget _getEmptyState() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text(
+          const Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text(
             '아직 채팅방이 없어요',
             style: TextStyle(fontSize: 18, color: Colors.grey),
           ),
-          SizedBox(height: 8),
-          Text(
-            '펫을 찜하고 새로운 친구를 만나보세요!',
+          const SizedBox(height: 8),
+          const Text(
+            '간식함에서 펫을 클릭하여 채팅을 시작해보세요!',
             style: TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              // 간식함 페이지로 이동
+              widget.onNavTap(1); // 간식함이 인덱스 1이라고 가정
+            },
+            child: const Text('간식함으로 가기'),
           ),
         ],
       ),
@@ -101,6 +109,7 @@ class _ChatListPageState extends State<ChatListPage> {
     var currentUserId = SupabaseService.client.auth.currentUser?.id ?? '';
 
     var otherUserName = chatRoom.getOtherUserName(currentUserId);
+    var otherPetName = chatRoom.getOtherPetName(currentUserId);
     var otherUserProfileImage = chatRoom.getOtherUserProfileImage(
       currentUserId,
     );
@@ -118,31 +127,7 @@ class _ChatListPageState extends State<ChatListPage> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(30),
-              child: Container(
-                width: 60,
-                height: 60,
-                color: Colors.grey[200],
-                child:
-                    otherUserProfileImage != null
-                        ? Image.network(
-                          otherUserProfileImage,
-                          fit: BoxFit.cover,
-                          errorBuilder:
-                              (context, error, stackTrace) => const Icon(
-                                Icons.person,
-                                size: 30,
-                                color: Colors.grey,
-                              ),
-                        )
-                        : const Icon(
-                          Icons.person,
-                          size: 30,
-                          color: Colors.grey,
-                        ),
-              ),
-            ),
+            _buildProfileImage(otherUserProfileImage),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -151,12 +136,28 @@ class _ChatListPageState extends State<ChatListPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        otherUserName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              otherPetName,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              '주인: $otherUserName',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
                       if (chatRoom.lastMessageAt != null)
@@ -169,7 +170,7 @@ class _ChatListPageState extends State<ChatListPage> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   Text(
                     chatRoom.lastMessage ?? '메시지가 없습니다',
                     style: TextStyle(
@@ -185,6 +186,30 @@ class _ChatListPageState extends State<ChatListPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildProfileImage(String? profileImageUrl) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(30),
+      child: Container(
+        width: 60,
+        height: 60,
+        color: Colors.grey[200],
+        child:
+            profileImageUrl != null &&
+                    profileImageUrl.isNotEmpty &&
+                    (profileImageUrl.startsWith('http://') ||
+                        profileImageUrl.startsWith('https://'))
+                ? Image.network(
+                  profileImageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (context, error, stackTrace) =>
+                          const Icon(Icons.pets, size: 30, color: Colors.grey),
+                )
+                : const Icon(Icons.pets, size: 30, color: Colors.grey),
       ),
     );
   }

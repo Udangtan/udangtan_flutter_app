@@ -3,7 +3,7 @@ class ChatMessage {
     this.id,
     required this.chatRoomId,
     required this.senderId,
-    required this.message,
+    required this.content,
     this.messageType = 'text',
     this.isRead = false,
     this.createdAt,
@@ -14,7 +14,7 @@ class ChatMessage {
       id: json['id'],
       chatRoomId: json['chat_room_id'],
       senderId: json['sender_id'] ?? '',
-      message: json['message'] ?? '',
+      content: json['content'] ?? json['message'] ?? '',
       messageType: json['message_type'] ?? 'text',
       isRead: json['is_read'] ?? false,
       createdAt:
@@ -27,7 +27,7 @@ class ChatMessage {
   final int? id;
   final int chatRoomId;
   final String senderId;
-  final String message;
+  final String content;
   final String messageType;
   final bool isRead;
   final DateTime? createdAt;
@@ -37,7 +37,7 @@ class ChatMessage {
       if (id != null) 'id': id,
       'chat_room_id': chatRoomId,
       'sender_id': senderId,
-      'message': message,
+      'message': content,
       'message_type': messageType,
       'is_read': isRead,
     };
@@ -49,7 +49,7 @@ class ChatMessage {
 
   @override
   String toString() {
-    return 'ChatMessage(id: $id, senderId: $senderId, message: $message, messageType: $messageType)';
+    return 'ChatMessage(id: $id, senderId: $senderId, message: $content, messageType: $messageType)';
   }
 
   @override
@@ -74,7 +74,7 @@ class ChatMessage {
             id: 1,
             chatRoomId: 1,
             senderId: 'other',
-            message: '안녕하세요😊',
+            content: '안녕하세요😊',
             messageType: 'text',
             isRead: false,
             createdAt: now.subtract(const Duration(minutes: 7, seconds: 17)),
@@ -83,7 +83,7 @@ class ChatMessage {
             id: 2,
             chatRoomId: 1,
             senderId: 'me',
-            message: '안녕하세요 !',
+            content: '안녕하세요 !',
             messageType: 'text',
             isRead: false,
             createdAt: now.subtract(const Duration(minutes: 6, seconds: 22)),
@@ -92,7 +92,7 @@ class ChatMessage {
             id: 3,
             chatRoomId: 1,
             senderId: 'me',
-            message: '강아지가 몇살인가요?',
+            content: '강아지가 몇살인가요?',
             messageType: 'text',
             isRead: false,
             createdAt: now.subtract(const Duration(minutes: 5, seconds: 22)),
@@ -101,7 +101,7 @@ class ChatMessage {
             id: 4,
             chatRoomId: 1,
             senderId: 'other',
-            message: '2살입니다 !',
+            content: '2살입니다 !',
             messageType: 'text',
             isRead: false,
             createdAt: now.subtract(const Duration(minutes: 4, seconds: 36)),
@@ -110,7 +110,7 @@ class ChatMessage {
             id: 5,
             chatRoomId: 1,
             senderId: 'other',
-            message: '여름이는 몇살인가요?',
+            content: '여름이는 몇살인가요?',
             messageType: 'text',
             isRead: false,
             createdAt: now.subtract(const Duration(minutes: 4, seconds: 36)),
@@ -119,7 +119,7 @@ class ChatMessage {
             id: 6,
             chatRoomId: 1,
             senderId: 'other',
-            message: '괜찮으면 산책 같이 하실래요?',
+            content: '괜찮으면 산책 같이 하실래요?',
             messageType: 'text',
             isRead: false,
             createdAt: now.subtract(const Duration(minutes: 3, seconds: 24)),
@@ -128,7 +128,7 @@ class ChatMessage {
             id: 7,
             chatRoomId: 1,
             senderId: 'me',
-            message: '오.. 너무 좋은데요?!',
+            content: '오.. 너무 좋은데요?!',
             messageType: 'text',
             isRead: false,
             createdAt: now.subtract(const Duration(minutes: 2, seconds: 29)),
@@ -137,7 +137,7 @@ class ChatMessage {
             id: 8,
             chatRoomId: 1,
             senderId: 'me',
-            message: '어디서 주로 산책하시나요?',
+            content: '어디서 주로 산책하시나요?',
             messageType: 'text',
             isRead: false,
             createdAt: now.subtract(const Duration(minutes: 1, seconds: 29)),
@@ -149,7 +149,7 @@ class ChatMessage {
             id: 1,
             chatRoomId: 1,
             senderId: 'other',
-            message: '안녕하세요!',
+            content: '안녕하세요!',
             messageType: 'text',
             isRead: false,
             createdAt: now.subtract(const Duration(minutes: 10)),
@@ -158,7 +158,7 @@ class ChatMessage {
             id: 2,
             chatRoomId: 1,
             senderId: 'me',
-            message: '안녕하세요!',
+            content: '안녕하세요!',
             messageType: 'text',
             isRead: false,
             createdAt: now.subtract(const Duration(minutes: 9)),

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-
 import 'package:udangtan_flutter_app/models/chat_message.dart';
 import 'package:udangtan_flutter_app/models/chat_room.dart';
 import 'package:udangtan_flutter_app/services/chat_service.dart';
 import 'package:udangtan_flutter_app/services/supabase_service.dart';
 import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
+import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
 
 class ChatDetailPage extends StatefulWidget {
   const ChatDetailPage({super.key, required this.chatRoom});
@@ -43,6 +43,14 @@ class _ChatDetailPageState extends State<ChatDetailPage>
       setState(() {
         _currentUserId = user.id;
       });
+
+      // 메시지를 읽음으로 표시
+      if (widget.chatRoom.id != null) {
+        await ChatService.markMessagesAsRead(
+          chatRoomId: widget.chatRoom.id!,
+          userId: user.id,
+        );
+      }
     }
   }
 
@@ -53,9 +61,11 @@ class _ChatDetailPageState extends State<ChatDetailPage>
         setState(() {
           _messages = messages;
         });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
       }
     } catch (e) {
-      // 에러 처리
+      print('메시지 로드 실패: $e');
     }
   }
 
@@ -81,14 +91,12 @@ class _ChatDetailPageState extends State<ChatDetailPage>
         _isKeyboardVisible = newKeyboardVisible;
       });
 
-      // 키보드가 올라올 때 스크롤
       if (newKeyboardVisible) {
         _scrollToBottomWithDelay();
       }
     }
   }
 
-  // 텍스트 필드 포커스 변화 감지
   void _onFocusChange() {
     if (_textFieldFocusNode.hasFocus) {
       _scrollToBottomWithDelay();
@@ -103,18 +111,20 @@ class _ChatDetailPageState extends State<ChatDetailPage>
     }
 
     try {
-      await ChatService.sendMessage(
+      var sentMessage = await ChatService.sendMessage(
         chatRoomId: widget.chatRoom.id!,
         senderId: _currentUserId!,
         message: messageText,
       );
 
-      setState(() {
-        _messageController.clear();
-      });
+      if (sentMessage != null) {
+        setState(() {
+          _messages.add(sentMessage);
+          _messageController.clear();
+        });
 
-      // 메시지 목록 새로고침
-      await _loadMessages();
+        _scrollToBottomWithDelay();
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -135,21 +145,11 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   }
 
   void _scrollToBottomWithDelay() {
-    Future.delayed(const Duration(milliseconds: 300), () {
+    Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted && _scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-
-    Future.delayed(const Duration(milliseconds: 400), () {
-      if (mounted && _scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
         );
       }
@@ -165,20 +165,16 @@ class _ChatDetailPageState extends State<ChatDetailPage>
         a.minute == b.minute;
   }
 
-  String _getOtherUserName() {
-    if (_currentUserId == widget.chatRoom.user1Id) {
-      return widget.chatRoom.user2Name ?? 'Unknown';
-    } else {
-      return widget.chatRoom.user1Name ?? 'Unknown';
-    }
+  // 상대방 펫 이름 가져오기 (타이틀용)
+  String _getOtherPetName() {
+    if (_currentUserId == null) return '채팅';
+    return widget.chatRoom.getOtherPetName(_currentUserId!);
   }
 
+  // 상대방 사용자 프로필 이미지 (아바타용)
   String? _getOtherUserProfileImage() {
-    if (_currentUserId == widget.chatRoom.user1Id) {
-      return widget.chatRoom.user2ProfileImage;
-    } else {
-      return widget.chatRoom.user1ProfileImage;
-    }
+    if (_currentUserId == null) return null;
+    return widget.chatRoom.getOtherUserProfileImage(_currentUserId!);
   }
 
   @override
@@ -187,16 +183,13 @@ class _ChatDetailPageState extends State<ChatDetailPage>
       backgroundColor: const Color(0xFFF8F8F8),
       resizeToAvoidBottomInset: true,
       appBar: CommonAppBar(
-        title: _getOtherUserName(),
+        title: _getOtherPetName(),
         actions: [
           PopupMenuButton(
             icon: const Icon(Icons.more_vert, color: Colors.white),
             itemBuilder:
                 (context) => [
-                  PopupMenuItem(
-                    value: 'profile',
-                    child: Text('${_getOtherUserName()} 프로필'),
-                  ),
+                  const PopupMenuItem(value: 'profile', child: Text('프로필 보기')),
                   const PopupMenuItem(value: 'block', child: Text('차단하기')),
                 ],
           ),
@@ -221,7 +214,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                     message.createdAt,
                     next.createdAt,
                   );
-                  if (sameMinute) {
+                  if (sameMinute && message.senderId == next.senderId) {
                     showTime = false;
                   }
                 }
@@ -274,7 +267,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                   vertical: 8,
                 ),
                 decoration: const BoxDecoration(
-                  color: Color(0xFFE1BEE7),
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(18),
                     topRight: Radius.circular(2),
@@ -283,8 +276,8 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                   ),
                 ),
                 child: Text(
-                  message.message,
-                  style: const TextStyle(fontSize: 16, color: Colors.black),
+                  message.content, // 단순히 content만 사용
+                  style: const TextStyle(fontSize: 16, color: Colors.white),
                 ),
               ),
             ),
@@ -302,17 +295,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
           mainAxisSize: MainAxisSize.min,
           children: [
             if (shouldShowAvatar) ...[
-              CircleAvatar(
-                radius: 18,
-                backgroundImage:
-                    _getOtherUserProfileImage() != null
-                        ? NetworkImage(_getOtherUserProfileImage()!)
-                        : null,
-                child:
-                    _getOtherUserProfileImage() == null
-                        ? const Icon(Icons.person, size: 16)
-                        : null,
-              ),
+              _buildUserAvatar(),
               const SizedBox(width: 8),
             ] else ...[
               const SizedBox(width: 44),
@@ -322,7 +305,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
               children: [
                 if (shouldShowAvatar) ...[
                   Text(
-                    _getOtherUserName(),
+                    _getOtherPetName(),
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -355,7 +338,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                           border: Border.all(color: Colors.grey.shade300),
                         ),
                         child: Text(
-                          message.message,
+                          message.content, // 단순히 content만 사용
                           style: const TextStyle(
                             fontSize: 16,
                             color: Colors.black,
@@ -379,6 +362,29 @@ class _ChatDetailPageState extends State<ChatDetailPage>
             ),
           ],
         ),
+      );
+    }
+  }
+
+  Widget _buildUserAvatar() {
+    String? profileImageUrl = _getOtherUserProfileImage();
+
+    if (profileImageUrl != null &&
+        profileImageUrl.isNotEmpty &&
+        (profileImageUrl.startsWith('http://') ||
+            profileImageUrl.startsWith('https://'))) {
+      return CircleAvatar(
+        radius: 18,
+        backgroundImage: NetworkImage(profileImageUrl),
+        onBackgroundImageError: (exception, stackTrace) {
+          print('프로필 이미지 로드 실패: $profileImageUrl');
+        },
+      );
+    } else {
+      return CircleAvatar(
+        radius: 18,
+        backgroundColor: Colors.grey.shade300,
+        child: const Icon(Icons.pets, size: 16, color: Colors.grey),
       );
     }
   }
@@ -423,28 +429,17 @@ class _ChatDetailPageState extends State<ChatDetailPage>
               ),
             ),
             const SizedBox(width: 12),
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                shape: BoxShape.circle,
+            GestureDetector(
+              onTap: () => _sendMessage(_messageController.text),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.send, color: Colors.white, size: 20),
               ),
-              child: const Icon(
-                Icons.sentiment_satisfied_alt,
-                color: Colors.grey,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.tag, color: Colors.grey, size: 20),
             ),
           ],
         ),

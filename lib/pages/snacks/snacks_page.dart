@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
+import 'package:udangtan_flutter_app/pages/chat/chat_detail_page.dart';
 import 'package:udangtan_flutter_app/services/auth_service.dart';
+import 'package:udangtan_flutter_app/services/chat_service.dart';
 import 'package:udangtan_flutter_app/services/pet_service.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
 import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
@@ -112,6 +116,99 @@ class _SnacksPageState extends State<SnacksPage>
     }
   }
 
+  Future<void> _openChatWithPet(Pet pet) async {
+    if (_currentUserId == null || pet.id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('채팅을 시작할 수 없습니다'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    // 자기 자신의 펫인지 확인 (ownerId가 있는 경우)
+    if (pet.ownerId != null && pet.ownerId == _currentUserId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('자신의 펫과는 채팅할 수 없습니다'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    // 로딩 표시
+    unawaited(
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (context) => const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+            ),
+      ),
+    );
+
+    try {
+      print('채팅방 생성 시도: 펫 ${pet.name} (ID: ${pet.id})');
+
+      var chatRoom = await ChatService.findOrCreatePetChatRoom(
+        currentUserId: _currentUserId!,
+        targetPetId: pet.id!,
+      );
+
+      // 로딩 다이얼로그 닫기
+      if (mounted) Navigator.of(context).pop();
+
+      if (chatRoom != null && mounted) {
+        print('채팅방으로 이동: ${chatRoom.id}');
+
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ChatDetailPage(chatRoom: chatRoom),
+          ),
+        );
+      } else {
+        print('채팅방이 null로 반환됨');
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('채팅방을 생성할 수 없습니다'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // 로딩 다이얼로그 닫기
+      if (mounted) Navigator.of(context).pop();
+
+      if (mounted) {
+        String errorMessage = '채팅방 생성 실패';
+
+        if (e.toString().contains('자신의 펫과는 채팅할 수 없습니다')) {
+          errorMessage = '자신의 펫과는 채팅할 수 없습니다';
+        } else if (e.toString().contains('등록된 펫이 없습니다')) {
+          errorMessage = '등록된 펫이 없습니다. 먼저 펫을 등록해주세요.';
+        } else if (e.toString().contains('column') &&
+            e.toString().contains('does not exist')) {
+          errorMessage = '데이터베이스 설정 오류입니다. 관리자에게 문의하세요.';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context); // AutomaticKeepAliveClientMixin 요구사항
@@ -205,118 +302,162 @@ class _SnacksPageState extends State<SnacksPage>
   }
 
   Widget _buildPetCard(Pet pet) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 펫 이미지
-          Expanded(
-            flex: 3,
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
+    return GestureDetector(
+      onTap: () => _openChatWithPet(pet),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 펫 이미지
+            Expanded(
+              flex: 3,
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                ),
+                child: _buildPetImage(pet),
+              ),
+            ),
+            // 펫 정보
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            pet.name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            // 이벤트 버블링 방지
+                            _removeLike(pet);
+                          },
+                          child: const Icon(
+                            Icons.favorite,
+                            color: Colors.red,
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${pet.species} • ${pet.age}살',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 4),
+                    if (pet.ownerName != null)
+                      Text(
+                        '주인: ${pet.ownerName}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    if (pet.ownerName != null) const SizedBox(height: 2),
+                    if (pet.ownerAddress != null)
+                      Text(
+                        pet.ownerAddress!,
+                        style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    if (pet.ownerAddress != null) const SizedBox(height: 2),
+                    if (pet.likedAt != null)
+                      Text(
+                        '간식 준 날: ${_formatDate(pet.likedAt!)}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppColors.primary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
                 ),
               ),
-              child:
-                  pet.profileImages.isNotEmpty
-                      ? ClipRRect(
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(16),
-                          topRight: Radius.circular(16),
-                        ),
-                        child: Image.network(
-                          pet.profileImages.first,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return _buildPlaceholderImage(pet.species);
-                          },
-                        ),
-                      )
-                      : _buildPlaceholderImage(pet.species),
             ),
-          ),
-          // 펫 정보
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          pet.name,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () => _removeLike(pet),
-                        child: const Icon(
-                          Icons.favorite,
-                          color: Colors.red,
-                          size: 20,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${pet.species} • ${pet.age}살',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 4),
-                  if (pet.ownerName != null)
-                    Text(
-                      '주인: ${pet.ownerName}',
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  if (pet.ownerName != null) const SizedBox(height: 2),
-                  if (pet.ownerAddress != null)
-                    Text(
-                      pet.ownerAddress!,
-                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  if (pet.ownerAddress != null) const SizedBox(height: 2),
-                  if (pet.likedAt != null)
-                    Text(
-                      '간식 준 날: ${_formatDate(pet.likedAt!)}',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: AppColors.primary,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildPetImage(Pet pet) {
+    // 유효한 이미지 URL만 필터링
+    List<String> validImages =
+        pet.profileImages
+            .where((url) => url.trim().isNotEmpty)
+            .where((url) => !url.startsWith('file://'))
+            .where(
+              (url) => url.startsWith('http://') || url.startsWith('https://'),
+            )
+            .where((url) => Uri.tryParse(url) != null)
+            .toList();
+
+    if (validImages.isNotEmpty) {
+      String imageUrl = validImages.first;
+
+      return ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+        child: Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            print('이미지 로드 실패: $imageUrl, 에러: $error');
+            return _buildPlaceholderImage(pet.species);
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Center(
+              child: CircularProgressIndicator(
+                value:
+                    loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                        : null,
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  AppColors.primary,
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
+    // 유효한 이미지가 없으면 플레이스홀더 표시
+    return _buildPlaceholderImage(pet.species);
   }
 
   Widget _buildPlaceholderImage(String species) {
@@ -333,7 +474,7 @@ class _SnacksPageState extends State<SnacksPage>
     } else if (difference.inDays == 1) {
       return '어제';
     } else if (difference.inDays < 7) {
-      return '$difference.inDays일 전';
+      return '${difference.inDays}일 전';
     } else if (difference.inDays < 30) {
       var weeks = (difference.inDays / 7).floor();
       return '$weeks주 전';
