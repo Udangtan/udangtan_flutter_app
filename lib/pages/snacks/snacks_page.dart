@@ -128,7 +128,7 @@ class _SnacksPageState extends State<SnacksPage>
     }
 
     // 자기 자신의 펫인지 확인 (ownerId가 있는 경우)
-    if (pet.ownerId != null && pet.ownerId == _currentUserId) {
+    if (pet.ownerId == _currentUserId) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('자신의 펫과는 채팅할 수 없습니다'),
