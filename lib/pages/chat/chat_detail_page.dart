@@ -288,7 +288,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
       return Container(
         margin: EdgeInsets.symmetric(
           vertical: shouldShowAvatar ? 6 : 2,
-          horizontal: 8,
+          horizontal: 2,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -420,7 +420,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                   controller: _messageController,
                   focusNode: _textFieldFocusNode,
                   decoration: const InputDecoration(
-                    hintText: '메시지를 입력하세요...',
+                    hintText: '메시지를 입력하세요',
                     border: InputBorder.none,
                   ),
                   onSubmitted: (value) => _sendMessage(value),
