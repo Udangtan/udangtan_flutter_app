@@ -21,6 +21,7 @@ class ChatListPage extends StatefulWidget {
 
 class _ChatListPageState extends State<ChatListPage> {
   List<ChatRoom> _chatRooms = [];
+  Map<int, int> _unreadCounts = {};
   bool _isLoading = true;
 
   @override
@@ -34,8 +35,13 @@ class _ChatListPageState extends State<ChatListPage> {
       var user = SupabaseService.client.auth.currentUser;
       if (user != null) {
         var chatRooms = await ChatService.getChatRooms(user.id);
+        var unreadCounts = await ChatService.getUnreadCountsForAllChatRooms(
+          user.id,
+        );
+
         setState(() {
           _chatRooms = chatRooms;
+          _unreadCounts = unreadCounts;
           _isLoading = false;
         });
       }
@@ -107,6 +113,7 @@ class _ChatListPageState extends State<ChatListPage> {
 
   Widget _buildChatRoomCard(ChatRoom chatRoom) {
     var currentUserId = SupabaseService.client.auth.currentUser?.id ?? '';
+    var unreadCount = _unreadCounts[chatRoom.id] ?? 0;
 
     var otherUserName = chatRoom.getOtherUserName(currentUserId);
     var otherPetName = chatRoom.getOtherPetName(currentUserId);
@@ -115,13 +122,14 @@ class _ChatListPageState extends State<ChatListPage> {
     );
 
     return InkWell(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ChatDetailPage(chatRoom: chatRoom),
           ),
         );
+        await _loadChatRooms();
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -160,14 +168,6 @@ class _ChatListPageState extends State<ChatListPage> {
                           ],
                         ),
                       ),
-                      if (chatRoom.lastMessageAt != null)
-                        Text(
-                          _formatLastMessageTime(chatRoom.lastMessageAt),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -183,6 +183,38 @@ class _ChatListPageState extends State<ChatListPage> {
                   ),
                 ],
               ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                if (chatRoom.lastMessageAt != null)
+                  Text(
+                    _formatLastMessageTime(chatRoom.lastMessageAt),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                const SizedBox(height: 6),
+                if (unreadCount > 0)
+                  Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      unreadCount > 99 ? '99+' : unreadCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ],
         ),

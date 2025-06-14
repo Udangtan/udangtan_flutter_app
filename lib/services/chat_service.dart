@@ -1,8 +1,51 @@
 import 'package:udangtan_flutter_app/models/chat_message.dart';
 import 'package:udangtan_flutter_app/models/chat_room.dart';
 import 'package:udangtan_flutter_app/services/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ChatService {
+  static RealtimeChannel? subscribeToMessages(
+    int chatRoomId,
+    Function(ChatMessage) onNewMessage,
+  ) {
+    try {
+      final channel =
+          SupabaseService.client
+              .channel('chat_messages_$chatRoomId')
+              .onPostgresChanges(
+                event: PostgresChangeEvent.insert,
+                schema: 'public',
+                table: 'chat_messages',
+                filter: PostgresChangeFilter(
+                  type: PostgresChangeFilterType.eq,
+                  column: 'chat_room_id',
+                  value: chatRoomId,
+                ),
+                callback: (payload) {
+                  try {
+                    final newMessage = ChatMessage.fromJson(payload.newRecord);
+                    onNewMessage(newMessage);
+                  } catch (e) {
+                    print('새 메시지 파싱 오류: $e');
+                  }
+                },
+              )
+              .subscribe();
+
+      return channel;
+    } catch (e) {
+      print('실시간 구독 오류: $e');
+      return null;
+    }
+  }
+
+  // 구독 해제
+  static Future<void> unsubscribeFromMessages(RealtimeChannel? channel) async {
+    if (channel != null) {
+      await SupabaseService.client.removeChannel(channel);
+    }
+  }
+
   static Future<List<ChatRoom>> getChatRooms(String userId) async {
     try {
       var response = await SupabaseService.client
@@ -157,15 +200,15 @@ class ChatService {
     String messageType = 'text',
   }) async {
     try {
-      // 메시지 생성 - DB 스키마에 맞게 'content' 필드 사용
       var response =
           await SupabaseService.client
               .from('chat_messages')
               .insert({
                 'chat_room_id': chatRoomId,
                 'sender_id': senderId,
-                'content': message, // 'message'가 아닌 'content' 사용
+                'content': message,
                 'message_type': messageType,
+                'is_read': false,
               })
               .select()
               .single();
@@ -181,6 +224,7 @@ class ChatService {
 
       return ChatMessage.fromJson(response);
     } catch (error) {
+      print('메시지 전송 오류: $error');
       return null;
     }
   }
@@ -241,6 +285,59 @@ class ChatService {
       return true;
     } catch (error) {
       return false;
+    }
+  }
+
+  static Future<int> getUnreadMessageCountForChatRoom({
+    required int chatRoomId,
+    required String userId,
+  }) async {
+    try {
+      var unreadResponse = await SupabaseService.client
+          .from('chat_messages')
+          .select('id')
+          .eq('chat_room_id', chatRoomId)
+          .neq('sender_id', userId)
+          .eq('is_read', false);
+
+      return unreadResponse.length;
+    } catch (error) {
+      print('채팅방별 읽지 않은 메시지 개수 조회 오류: $error');
+      return 0;
+    }
+  }
+
+  static Future<Map<int, int>> getUnreadCountsForAllChatRooms(
+    String userId,
+  ) async {
+    try {
+      // 사용자가 참여한 채팅방들 조회
+      var chatRoomsResponse = await SupabaseService.client
+          .from('chat_rooms')
+          .select('id')
+          .or('user1_id.eq.$userId,user2_id.eq.$userId')
+          .eq('is_active', true);
+
+      var chatRoomIds =
+          chatRoomsResponse.map<int>((room) => room['id'] as int).toList();
+
+      if (chatRoomIds.isEmpty) return {};
+
+      Map<int, int> unreadCounts = {};
+
+      // 각 채팅방별로 읽지 않은 메시지 개수 조회
+      for (int chatRoomId in chatRoomIds) {
+        var count = await getUnreadMessageCountForChatRoom(
+          chatRoomId: chatRoomId,
+          userId: userId,
+        );
+        unreadCounts[chatRoomId] = count;
+      }
+
+      return unreadCounts;
+    } catch (error) {
+      print('전체 채팅방 읽지 않은 메시지 개수 조회 오류: $error');
+      return {};
     }
   }
 }
