@@ -7,12 +7,15 @@ class ChatService {
     try {
       var response = await SupabaseService.client
           .from('chat_rooms_with_users')
-          .select()
+          .select('*')
           .or('user1_id.eq.$userId,user2_id.eq.$userId')
           .eq('is_active', true)
           .order('last_message_at', ascending: false);
 
-      return response.map<ChatRoom>((json) => ChatRoom.fromJson(json)).toList();
+      var chatRooms =
+          response.map<ChatRoom>((json) => ChatRoom.fromJson(json)).toList();
+
+      return chatRooms;
     } catch (error) {
       return [];
     }
@@ -41,6 +44,96 @@ class ChatService {
     }
   }
 
+  static Future<ChatRoom?> findOrCreatePetChatRoom({
+    required String currentUserId,
+    required int targetPetId,
+  }) async {
+    try {
+      // 타겟 펫 정보 조회
+      var petResponse =
+          await SupabaseService.client
+              .from('pets')
+              .select('id, name, owner_id')
+              .eq('id', targetPetId)
+              .single();
+
+      String targetPetOwnerId = petResponse['owner_id'];
+      // String targetPetName = petResponse['name'];
+
+      // 자기 자신의 펫인지 확인
+      if (targetPetOwnerId == currentUserId) {
+        throw Exception('자신의 펫과는 채팅할 수 없습니다');
+      }
+
+      // 현재 사용자의 펫 정보 조회
+      var myPetResponse = await SupabaseService.client
+          .from('pets')
+          .select('id, name')
+          .eq('owner_id', currentUserId)
+          .order('created_at', ascending: false)
+          .limit(1);
+
+      if (myPetResponse.isEmpty) {
+        throw Exception('등록된 펫이 없습니다. 먼저 펫을 등록해주세요.');
+      }
+
+      int myPetId = myPetResponse.first['id'];
+      // String myPetName = myPetResponse.first['name'];
+
+      var existingRoom1 = await SupabaseService.client
+          .from('chat_rooms_with_users')
+          .select('*')
+          .eq('pet1_id', myPetId)
+          .eq('pet2_id', targetPetId)
+          .eq('is_active', true)
+          .limit(1);
+
+      if (existingRoom1.isNotEmpty) {
+        return ChatRoom.fromJson(existingRoom1.first);
+      }
+
+      // 상대 펫이 pet1, 내 펫이 pet2
+      var existingRoom2 = await SupabaseService.client
+          .from('chat_rooms_with_users')
+          .select('*')
+          .eq('pet1_id', targetPetId)
+          .eq('pet2_id', myPetId)
+          .eq('is_active', true)
+          .limit(1);
+
+      if (existingRoom2.isNotEmpty) {
+        return ChatRoom.fromJson(existingRoom2.first);
+      }
+
+      var newChatRoomResponse =
+          await SupabaseService.client
+              .from('chat_rooms')
+              .insert({
+                'user1_id': currentUserId,
+                'user2_id': targetPetOwnerId,
+                'pet1_id': myPetId,
+                'pet2_id': targetPetId,
+                'chat_type': 'pet_chat',
+                'is_active': true,
+              })
+              .select()
+              .single();
+
+      // 생성된 채팅방을 뷰에서 다시 조회
+      var chatRoomWithUsersResponse =
+          await SupabaseService.client
+              .from('chat_rooms_with_users')
+              .select('*')
+              .eq('id', newChatRoomResponse['id'])
+              .single();
+
+      return ChatRoom.fromJson(chatRoomWithUsersResponse);
+    } catch (e) {
+      print('findOrCreatePetChatRoom 에러: $e');
+      rethrow;
+    }
+  }
+
   static Future<List<ChatMessage>> getChatMessages(int chatRoomId) async {
     try {
       var response = await SupabaseService.client
@@ -64,14 +157,14 @@ class ChatService {
     String messageType = 'text',
   }) async {
     try {
-      // 메시지 생성
+      // 메시지 생성 - DB 스키마에 맞게 'content' 필드 사용
       var response =
           await SupabaseService.client
               .from('chat_messages')
               .insert({
                 'chat_room_id': chatRoomId,
                 'sender_id': senderId,
-                'message': message,
+                'content': message, // 'message'가 아닌 'content' 사용
                 'message_type': messageType,
               })
               .select()

@@ -12,10 +12,15 @@ class ChatRoom {
     this.user1ProfileImage,
     this.user2Name,
     this.user2ProfileImage,
+    this.pet1Id,
+    this.pet2Id,
+    this.pet1Name,
+    this.pet2Name,
+    this.chatType,
   });
 
   factory ChatRoom.fromJson(Map<String, dynamic> json) {
-    return ChatRoom(
+    var chatRoom = ChatRoom(
       id: json['id'],
       matchId: json['match_id'],
       user1Id: json['user1_id'] ?? '',
@@ -34,7 +39,14 @@ class ChatRoom {
       user1ProfileImage: json['user1_profile_image'],
       user2Name: json['user2_name'],
       user2ProfileImage: json['user2_profile_image'],
+      pet1Id: json['pet1_id'],
+      pet2Id: json['pet2_id'],
+      pet1Name: json['pet1_name'],
+      pet2Name: json['pet2_name'],
+      chatType: json['chat_type'],
     );
+
+    return chatRoom;
   }
 
   final int? id;
@@ -52,6 +64,13 @@ class ChatRoom {
   final String? user2Name;
   final String? user2ProfileImage;
 
+  // 펫 정보 필드들
+  final int? pet1Id;
+  final int? pet2Id;
+  final String? pet1Name;
+  final String? pet2Name;
+  final String? chatType;
+
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,
@@ -62,6 +81,9 @@ class ChatRoom {
       if (lastMessageAt != null)
         'last_message_at': lastMessageAt!.toIso8601String(),
       'is_active': isActive,
+      if (pet1Id != null) 'pet1_id': pet1Id,
+      if (pet2Id != null) 'pet2_id': pet2Id,
+      if (chatType != null) 'chat_type': chatType,
     };
   }
 
@@ -81,9 +103,27 @@ class ChatRoom {
     }
   }
 
+  // 상대방 펫 이름 가져오기
+  String getOtherPetName(String currentUserId) {
+    if (currentUserId == user1Id) {
+      return pet2Name ?? '알 수 없는 펫';
+    } else {
+      return pet1Name ?? '알 수 없는 펫';
+    }
+  }
+
+  // 내 펫 이름 가져오기
+  String getMyPetName(String currentUserId) {
+    if (currentUserId == user1Id) {
+      return pet1Name ?? '내 펫';
+    } else {
+      return pet2Name ?? '내 펫';
+    }
+  }
+
   @override
   String toString() {
-    return 'ChatRoom(id: $id, user1Id: $user1Id, user2Id: $user2Id, lastMessage: $lastMessage)';
+    return 'ChatRoom(id: $id, user1Id: $user1Id, user2Id: $user2Id, pet1Name: $pet1Name, pet2Name: $pet2Name, lastMessage: $lastMessage)';
   }
 
   @override

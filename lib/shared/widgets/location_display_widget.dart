@@ -36,7 +36,16 @@ class _LocationDisplayWidgetState extends State<LocationDisplayWidget> {
 
   // 외부에서 호출할 수 있는 새로고침 메서드
   void refreshLocation() {
-    _loadDefaultAddress();
+    if (mounted) {
+      _loadDefaultAddress();
+    }
+  }
+
+  // 외부에서 주소 새로고침할 수 있도록
+  void refresh() {
+    if (mounted) {
+      _loadDefaultAddress();
+    }
   }
 
   Future<void> _loadDefaultAddress() async {
@@ -44,19 +53,25 @@ class _LocationDisplayWidgetState extends State<LocationDisplayWidget> {
       var userId = AuthService.getCurrentUserId();
       if (userId != null) {
         var address = await LocationService.getDefaultAddress(userId);
-        setState(() {
-          _defaultAddress = address;
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _defaultAddress = address;
+            _isLoading = false;
+          });
+        }
       } else {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
           _isLoading = false;
         });
       }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
@@ -156,10 +171,5 @@ class _LocationDisplayWidgetState extends State<LocationDisplayWidget> {
         ),
       ),
     );
-  }
-
-  // 외부에서 주소 새로고침할 수 있도록
-  void refresh() {
-    _loadDefaultAddress();
   }
 }
