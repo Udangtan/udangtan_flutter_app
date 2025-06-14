@@ -115,8 +115,9 @@ class _ChatListPageState extends State<ChatListPage> {
     var currentUserId = SupabaseService.client.auth.currentUser?.id ?? '';
     var unreadCount = _unreadCounts[chatRoom.id] ?? 0;
 
-    var otherUserName = chatRoom.getOtherUserName(currentUserId);
+    // var otherUserName = chatRoom.getOtherUserName(currentUserId);
     var otherPetName = chatRoom.getOtherPetName(currentUserId);
+    var myPetName = chatRoom.getMyPetName(currentUserId);
     var otherUserProfileImage = chatRoom.getOtherUserProfileImage(
       currentUserId,
     );
@@ -158,7 +159,7 @@ class _ChatListPageState extends State<ChatListPage> {
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
-                              '주인: $otherUserName',
+                              '내 펫: $myPetName',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey.shade600,
