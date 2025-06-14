@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:udangtan_flutter_app/models/chat_message.dart';
 import 'package:udangtan_flutter_app/models/chat_room.dart';
 import 'package:udangtan_flutter_app/services/chat_service.dart';
 import 'package:udangtan_flutter_app/services/supabase_service.dart';
-import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
+import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
 
 class ChatDetailPage extends StatefulWidget {
   const ChatDetailPage({super.key, required this.chatRoom});
@@ -20,6 +21,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _textFieldFocusNode = FocusNode();
+  RealtimeChannel? _messageSubscription;
 
   List<ChatMessage> _messages = [];
   bool _isKeyboardVisible = false;
@@ -31,10 +33,35 @@ class _ChatDetailPageState extends State<ChatDetailPage>
     WidgetsBinding.instance.addObserver(this);
     _initializeCurrentUser();
     _loadMessages();
+    _subscribeToMessages();
 
     _textFieldFocusNode.addListener(_onFocusChange);
-
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+  }
+
+  void _subscribeToMessages() {
+    if (widget.chatRoom.id != null) {
+      _messageSubscription = ChatService.subscribeToMessages(
+        widget.chatRoom.id!,
+        (newMessage) {
+          // 자신이 보낸 메시지가 아닐 때만 추가 (중복 방지)
+          if (newMessage.senderId != _currentUserId) {
+            setState(() {
+              _messages.add(newMessage);
+            });
+            _scrollToBottomWithDelay();
+
+            // 메시지를 읽음으로 표시
+            if (_currentUserId != null) {
+              ChatService.markMessagesAsRead(
+                chatRoomId: widget.chatRoom.id!,
+                userId: _currentUserId!,
+              );
+            }
+          }
+        },
+      );
+    }
   }
 
   Future<void> _initializeCurrentUser() async {
@@ -71,6 +98,8 @@ class _ChatDetailPageState extends State<ChatDetailPage>
 
   @override
   void dispose() {
+    ChatService.unsubscribeFromMessages(_messageSubscription);
+
     WidgetsBinding.instance.removeObserver(this);
     _messageController.dispose();
     _scrollController.dispose();

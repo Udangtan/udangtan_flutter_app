@@ -1,8 +1,51 @@
 import 'package:udangtan_flutter_app/models/chat_message.dart';
 import 'package:udangtan_flutter_app/models/chat_room.dart';
 import 'package:udangtan_flutter_app/services/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ChatService {
+  static RealtimeChannel? subscribeToMessages(
+    int chatRoomId,
+    Function(ChatMessage) onNewMessage,
+  ) {
+    try {
+      final channel =
+          SupabaseService.client
+              .channel('chat_messages_$chatRoomId')
+              .onPostgresChanges(
+                event: PostgresChangeEvent.insert,
+                schema: 'public',
+                table: 'chat_messages',
+                filter: PostgresChangeFilter(
+                  type: PostgresChangeFilterType.eq,
+                  column: 'chat_room_id',
+                  value: chatRoomId,
+                ),
+                callback: (payload) {
+                  try {
+                    final newMessage = ChatMessage.fromJson(payload.newRecord);
+                    onNewMessage(newMessage);
+                  } catch (e) {
+                    print('새 메시지 파싱 오류: $e');
+                  }
+                },
+              )
+              .subscribe();
+
+      return channel;
+    } catch (e) {
+      print('실시간 구독 오류: $e');
+      return null;
+    }
+  }
+
+  // 구독 해제
+  static Future<void> unsubscribeFromMessages(RealtimeChannel? channel) async {
+    if (channel != null) {
+      await SupabaseService.client.removeChannel(channel);
+    }
+  }
+
   static Future<List<ChatRoom>> getChatRooms(String userId) async {
     try {
       var response = await SupabaseService.client
@@ -157,15 +200,15 @@ class ChatService {
     String messageType = 'text',
   }) async {
     try {
-      // 메시지 생성 - DB 스키마에 맞게 'content' 필드 사용
       var response =
           await SupabaseService.client
               .from('chat_messages')
               .insert({
                 'chat_room_id': chatRoomId,
                 'sender_id': senderId,
-                'content': message, // 'message'가 아닌 'content' 사용
+                'content': message,
                 'message_type': messageType,
+                'is_read': false,
               })
               .select()
               .single();
@@ -181,6 +224,7 @@ class ChatService {
 
       return ChatMessage.fromJson(response);
     } catch (error) {
+      print('메시지 전송 오류: $error');
       return null;
     }
   }
