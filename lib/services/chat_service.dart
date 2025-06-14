@@ -287,4 +287,57 @@ class ChatService {
       return false;
     }
   }
+
+  static Future<int> getUnreadMessageCountForChatRoom({
+    required int chatRoomId,
+    required String userId,
+  }) async {
+    try {
+      var unreadResponse = await SupabaseService.client
+          .from('chat_messages')
+          .select('id')
+          .eq('chat_room_id', chatRoomId)
+          .neq('sender_id', userId)
+          .eq('is_read', false);
+
+      return unreadResponse.length;
+    } catch (error) {
+      print('채팅방별 읽지 않은 메시지 개수 조회 오류: $error');
+      return 0;
+    }
+  }
+
+  static Future<Map<int, int>> getUnreadCountsForAllChatRooms(
+    String userId,
+  ) async {
+    try {
+      // 사용자가 참여한 채팅방들 조회
+      var chatRoomsResponse = await SupabaseService.client
+          .from('chat_rooms')
+          .select('id')
+          .or('user1_id.eq.$userId,user2_id.eq.$userId')
+          .eq('is_active', true);
+
+      var chatRoomIds =
+          chatRoomsResponse.map<int>((room) => room['id'] as int).toList();
+
+      if (chatRoomIds.isEmpty) return {};
+
+      Map<int, int> unreadCounts = {};
+
+      // 각 채팅방별로 읽지 않은 메시지 개수 조회
+      for (int chatRoomId in chatRoomIds) {
+        var count = await getUnreadMessageCountForChatRoom(
+          chatRoomId: chatRoomId,
+          userId: userId,
+        );
+        unreadCounts[chatRoomId] = count;
+      }
+
+      return unreadCounts;
+    } catch (error) {
+      print('전체 채팅방 읽지 않은 메시지 개수 조회 오류: $error');
+      return {};
+    }
+  }
 }
