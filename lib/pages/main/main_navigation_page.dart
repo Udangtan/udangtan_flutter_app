@@ -136,7 +136,7 @@ class _MainNavigationState extends State<MainNavigation>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildNavItem(0, Icons.home_filled, '홈'),
-                _buildNavItem(1, Icons.favorite, '찜'),
+                _buildNavItem(1, Icons.favorite, '간식함'),
                 _buildCenterNavItem(2, Icons.location_on, '내 주변'),
                 _buildNavItem(3, Icons.chat_bubble, '채팅'),
                 _buildNavItem(4, Icons.person, '프로필'),
