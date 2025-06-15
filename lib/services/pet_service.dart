@@ -130,23 +130,54 @@ class PetService {
         throw Exception('펫 ID가 없습니다');
       }
 
+      // 업데이트용 데이터 준비 (id와 owner_id 제외)
+      var updateData = pet.toJson();
+      updateData.remove('id'); // ID는 WHERE 조건에서 사용
+      updateData.remove('owner_id'); // 소유자는 변경하지 않음
+
       var response =
           await SupabaseService.client
               .from('pets')
-              .update(pet.toJson())
+              .update(updateData)
               .eq('id', pet.id!)
+              .eq('owner_id', pet.ownerId) // 소유자 확인
               .select()
               .single();
 
       return Pet.fromJson(response);
     } catch (error) {
-      throw Exception('펫 정보 수정 실패: $error');
+      if (error.toString().contains('violates check constraint')) {
+        if (error.toString().contains('pets_gender_check')) {
+          throw Exception('성별은 "수컷" 또는 "암컷"만 입력 가능합니다');
+        } else if (error.toString().contains('pets_vaccination_status_check')) {
+          throw Exception('예방접종 상태는 "완료", "미완료", "진행중", "모름" 중 하나만 입력 가능합니다');
+        } else if (error.toString().contains('pets_is_neutered_check')) {
+          throw Exception('중성화 여부는 "완료", "안함", "모름" 중 하나만 입력 가능합니다');
+        } else {
+          throw Exception('입력된 데이터가 유효하지 않습니다: $error');
+        }
+      } else if (error.toString().contains('permission denied')) {
+        throw Exception('펫 정보 수정 권한이 없습니다');
+      } else if (error.toString().contains('No rows found')) {
+        throw Exception('수정할 펫을 찾을 수 없거나 권한이 없습니다');
+      } else {
+        throw Exception('펫 정보 수정 실패: $error');
+      }
     }
   }
 
   static Future<void> deletePet(int petId) async {
     try {
-      await SupabaseService.client.from('pets').delete().eq('id', petId);
+      var currentUserId = AuthService.getCurrentUserId();
+      if (currentUserId == null) {
+        throw Exception('로그인이 필요합니다');
+      }
+
+      await SupabaseService.client
+          .from('pets')
+          .delete()
+          .eq('id', petId)
+          .eq('owner_id', currentUserId);
     } catch (error) {
       throw Exception('펫 삭제 실패: $error');
     }

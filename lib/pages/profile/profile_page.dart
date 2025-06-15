@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
 import 'package:udangtan_flutter_app/models/user.dart' as app_user;
 import 'package:udangtan_flutter_app/pages/profile/address_management_page.dart';
+import 'package:udangtan_flutter_app/pages/profile/pet_edit_page.dart';
 import 'package:udangtan_flutter_app/pages/profile/pet_registration_page.dart';
 import 'package:udangtan_flutter_app/services/auth_service.dart';
 import 'package:udangtan_flutter_app/services/pet_service.dart';
@@ -641,6 +642,48 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              PopupMenuButton<String>(
+                icon: const Icon(
+                  Icons.more_vert,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    _editPet(pet);
+                  } else if (value == 'delete') {
+                    _deletePet(pet);
+                  }
+                },
+                itemBuilder:
+                    (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.edit,
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
+                            SizedBox(width: 8),
+                            Text('수정'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 18, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('삭제'),
+                          ],
+                        ),
+                      ),
+                    ],
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -784,6 +827,90 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
             backgroundColor: Colors.red,
           ),
         );
+      }
+    }
+  }
+
+  Future<void> _editPet(Pet pet) async {
+    try {
+      var result = await Navigator.push<dynamic>(
+        context,
+        MaterialPageRoute(builder: (context) => PetEditPage(pet: pet)),
+      );
+
+      // 수정 완료 신호가 반환되면 펫 목록 새로고침
+      if (result == true) {
+        await _loadUserPets();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('반려동물 정보가 수정되었습니다! ✨'),
+              backgroundColor: Color(0xFF6C5CE7),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('펫 수정 중 오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _deletePet(Pet pet) async {
+    // 삭제 확인 다이얼로그 표시
+    bool? shouldDelete = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('반려동물 삭제'),
+            content: Text('${pet.name}을(를) 정말 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('삭제'),
+              ),
+            ],
+          ),
+    );
+
+    if (shouldDelete == true) {
+      try {
+        if (pet.id != null) {
+          await PetService.deletePet(pet.id!);
+          await _loadUserPets();
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${pet.name}이(가) 삭제되었습니다.'),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('펫 삭제 중 오류가 발생했습니다: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
