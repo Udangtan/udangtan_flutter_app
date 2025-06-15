@@ -133,6 +133,21 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                     width: 160,
                     height: 160,
                     fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 160,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          color: Colors.deepPurple.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(80),
+                        ),
+                        child: const Icon(
+                          Icons.pets,
+                          size: 80,
+                          color: Colors.deepPurple,
+                        ),
+                      );
+                    },
                   ),
                 ),
                 AnimatedOpacity(
@@ -144,6 +159,21 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                     width: 160,
                     height: 160,
                     fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 160,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          color: Colors.deepPurple.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(80),
+                        ),
+                        child: const Icon(
+                          Icons.favorite,
+                          size: 80,
+                          color: Colors.deepPurple,
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],

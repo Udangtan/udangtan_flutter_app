@@ -188,6 +188,7 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
                   right: 24,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         '${widget.pet.name}, ${widget.pet.age}세',
@@ -203,6 +204,8 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
                             ),
                           ],
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 12),
                       if (widget.pet.personality.isNotEmpty)
@@ -263,6 +266,7 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     if (widget.pet.ownerName != null)
                                       Text(
@@ -272,6 +276,8 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
                                         ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     if (widget.pet.ownerAddress != null)
                                       Text(
@@ -295,6 +301,7 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
                       const SizedBox(height: 16),
                       if (widget.pet.description != null)
                         Container(
+                          constraints: const BoxConstraints(maxHeight: 80),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 12,

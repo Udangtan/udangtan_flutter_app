@@ -15,7 +15,14 @@ import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
 import 'package:udangtan_flutter_app/shared/widgets/location_display_widget.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  const ProfilePage({
+    super.key,
+    required this.currentNavIndex,
+    required this.onNavTap,
+  });
+
+  final int currentNavIndex;
+  final Function(int) onNavTap;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -27,14 +34,14 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   List<Pet> myPets = [];
   bool _isLoading = true;
   bool _isPetsLoading = false;
-
-  final GlobalKey<State<LocationDisplayWidget>> _locationWidgetKey =
-      GlobalKey<State<LocationDisplayWidget>>();
+  int _lastNavIndex = -1;
+  int _locationWidgetRefreshKey = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _lastNavIndex = widget.currentNavIndex;
     unawaited(_loadProfile());
   }
 
@@ -45,19 +52,21 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed) {
-      // 앱이 포그라운드로 돌아올 때 펫 목록 갱신
+  void didUpdateWidget(ProfilePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 프로필 탭(인덱스 4)으로 변경되었을 때 자동 갱신
+    if (oldWidget.currentNavIndex != widget.currentNavIndex &&
+        widget.currentNavIndex == 4 &&
+        _lastNavIndex != 4) {
       _loadUserPets();
     }
+    _lastNavIndex = widget.currentNavIndex;
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // 위젯이 다시 빌드될 때마다 펫 목록 갱신
-    if (_currentUser != null) {
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && widget.currentNavIndex == 4) {
       _loadUserPets();
     }
   }
@@ -160,9 +169,11 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
         MaterialPageRoute(builder: (context) => const AddressManagementPage()),
       );
 
-      // 주소 변경이 있었다면 페이지 새로고침
+      // 주소 변경이 있었다면 LocationDisplayWidget 새로고침
       if (result == true) {
-        setState(() {});
+        setState(() {
+          _locationWidgetRefreshKey++;
+        });
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -229,7 +240,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                 const SizedBox(width: 12),
                 Expanded(
                   child: LocationDisplayWidget(
-                    key: _locationWidgetKey,
+                    key: ValueKey(_locationWidgetRefreshKey),
                     showManageButton: true,
                     onManageTap: _navigateToAddressManagement,
                     padding: EdgeInsets.zero,
@@ -466,17 +477,21 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
           else
             Column(
               children: [
-                SizedBox(
+                Container(
                   height: 200,
+                  margin: const EdgeInsets.symmetric(horizontal: 0),
                   child: PageView.builder(
                     controller: PageController(
-                      viewportFraction: 0.85,
+                      viewportFraction: 0.9,
                       initialPage: 0,
                     ),
                     itemCount: myPets.length,
                     itemBuilder: (context, index) {
                       return Container(
-                        margin: const EdgeInsets.only(right: 12),
+                        margin: EdgeInsets.only(
+                          left: index == 0 ? 0 : 6,
+                          right: index == myPets.length - 1 ? 0 : 6,
+                        ),
                         child: _buildPetCard(myPets[index]),
                       );
                     },

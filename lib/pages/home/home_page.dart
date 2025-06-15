@@ -54,6 +54,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (oldWidget.currentNavIndex != widget.currentNavIndex &&
         widget.currentNavIndex == 0 &&
         _lastNavIndex != 0) {
+      setState(() {
+        _locationWidgetRefreshKey++;
+        _isCheckingAddress = true;
+      });
+      _checkAddressRegistration();
       _refreshPets();
     }
     _lastNavIndex = widget.currentNavIndex;
@@ -63,6 +68,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed && widget.currentNavIndex == 0) {
+      setState(() {
+        _locationWidgetRefreshKey++;
+        _isCheckingAddress = true;
+      });
+      _checkAddressRegistration();
       _refreshPets();
     }
   }
@@ -87,7 +97,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       if (result == true) {
         setState(() {
           _locationWidgetRefreshKey++;
+          _isCheckingAddress = true;
         });
+        await _checkAddressRegistration();
         await _refreshPets();
       }
     } else {
@@ -100,7 +112,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
-  void _checkAddressRegistration() async {
+  Future<void> _checkAddressRegistration() async {
     var userId = AuthService.getCurrentUserId();
     if (userId == null) {
       setState(() {
@@ -124,11 +136,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
-  void _onAddressRegistered() async {
+  Future<void> _onAddressRegistered() async {
     setState(() {
       _locationWidgetRefreshKey++;
+      _isCheckingAddress = true;
     });
-    _checkAddressRegistration();
+    await _checkAddressRegistration();
     await Future.delayed(const Duration(milliseconds: 500));
     await _refreshPets();
   }

@@ -19,15 +19,45 @@ class ChatListPage extends StatefulWidget {
   State<ChatListPage> createState() => _ChatListPageState();
 }
 
-class _ChatListPageState extends State<ChatListPage> {
+class _ChatListPageState extends State<ChatListPage>
+    with WidgetsBindingObserver {
   List<ChatRoom> _chatRooms = [];
   Map<int, int> _unreadCounts = {};
   bool _isLoading = true;
+  int _lastNavIndex = -1;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _lastNavIndex = widget.currentNavIndex;
     _loadChatRooms();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(ChatListPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 채팅 탭(인덱스 3)으로 변경되었을 때 자동 갱신
+    if (oldWidget.currentNavIndex != widget.currentNavIndex &&
+        widget.currentNavIndex == 3 &&
+        _lastNavIndex != 3) {
+      _loadChatRooms();
+    }
+    _lastNavIndex = widget.currentNavIndex;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && widget.currentNavIndex == 3) {
+      _loadChatRooms();
+    }
   }
 
   Future<void> _loadChatRooms() async {

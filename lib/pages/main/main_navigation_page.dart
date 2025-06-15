@@ -107,10 +107,10 @@ class _MainNavigationState extends State<MainNavigation>
             onNavTap: _onNavTap,
             onPetLiked: _onPetLiked,
           ),
-          const SnacksPage(),
+          SnacksPage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),
           MapPage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),
           ChatListPage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),
-          const ProfilePage(),
+          ProfilePage(currentNavIndex: _currentIndex, onNavTap: _onNavTap),
         ],
       ),
       bottomNavigationBar: Container(

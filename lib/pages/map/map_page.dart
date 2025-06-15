@@ -50,15 +50,57 @@ class PetGroup {
   final List<Pet> pets;
 }
 
-class _MapPageState extends State<MapPage> {
+class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   List<CustomOverlay> customOverlays = [];
   KakaoMapController? mapController;
   LatLng mapCenter = LatLng(37.49877286215097, 126.95220910952861);
   List<Pet> _allPets = [];
   List<PetGroup> _petGroups = [];
+  int _lastNavIndex = -1;
 
   static const String markerImageUrl =
       'https://velog.velcdn.com/images/vewevteen/post/40b5e857-5c31-4717-8955-8cfb6cb57918/image.png';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _lastNavIndex = widget.currentNavIndex;
+    _initializePets();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(MapPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 내 주변 탭(인덱스 2)으로 변경되었을 때 자동 갱신
+    if (oldWidget.currentNavIndex != widget.currentNavIndex &&
+        widget.currentNavIndex == 2 &&
+        _lastNavIndex != 2) {
+      _refreshPets();
+    }
+    _lastNavIndex = widget.currentNavIndex;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && widget.currentNavIndex == 2) {
+      _refreshPets();
+    }
+  }
+
+  Future<void> _refreshPets() async {
+    await _initializePets();
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   Future<void> _initializePets() async {
     try {
@@ -245,6 +287,7 @@ class _MapPageState extends State<MapPage> {
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(
                                           pet.name,
@@ -253,6 +296,8 @@ class _MapPageState extends State<MapPage> {
                                             fontWeight: FontWeight.bold,
                                             color: Colors.black87,
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 6),
                                         Row(
@@ -279,11 +324,15 @@ class _MapPageState extends State<MapPage> {
                                               ),
                                             ),
                                             const SizedBox(width: 8),
-                                            Text(
-                                              '${pet.breed} • ${pet.age}살',
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.grey[600],
+                                            Expanded(
+                                              child: Text(
+                                                '${pet.breed} • ${pet.age}살',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.grey[600],
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                           ],
@@ -306,6 +355,7 @@ class _MapPageState extends State<MapPage> {
                                   ),
                                   const SizedBox(width: 12),
                                   Column(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       SizedBox(
                                         width: 80,
@@ -485,6 +535,7 @@ class _MapPageState extends State<MapPage> {
                           right: 20,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
                                 pet.name,
@@ -493,6 +544,8 @@ class _MapPageState extends State<MapPage> {
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 8),
                               Row(
@@ -523,12 +576,16 @@ class _MapPageState extends State<MapPage> {
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  Text(
-                                    '${pet.breed} • ${pet.age}살 • ${pet.gender}',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w500,
+                                  Expanded(
+                                    child: Text(
+                                      '${pet.breed} • ${pet.age}살 • ${pet.gender}',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
@@ -649,12 +706,6 @@ class _MapPageState extends State<MapPage> {
         ).showSnackBar(SnackBar(content: Text('채팅방 생성 실패: $e')));
       }
     }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _initializePets();
   }
 
   @override

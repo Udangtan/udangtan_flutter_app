@@ -10,7 +10,14 @@ import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
 import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
 
 class SnacksPage extends StatefulWidget {
-  const SnacksPage({super.key});
+  const SnacksPage({
+    super.key,
+    required this.currentNavIndex,
+    required this.onNavTap,
+  });
+
+  final int currentNavIndex;
+  final Function(int) onNavTap;
 
   @override
   State<SnacksPage> createState() => _SnacksPageState();
@@ -21,15 +28,16 @@ class _SnacksPageState extends State<SnacksPage>
   List<Pet> _likedPets = [];
   bool _isLoading = true;
   String? _currentUserId;
-  final bool _isPageVisible = true;
+  int _lastNavIndex = -1;
 
   @override
-  bool get wantKeepAlive => true; // 페이지 상태 유지
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _lastNavIndex = widget.currentNavIndex;
     _loadLikedPets();
   }
 
@@ -40,9 +48,21 @@ class _SnacksPageState extends State<SnacksPage>
   }
 
   @override
+  void didUpdateWidget(SnacksPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 간식함 탭(인덱스 1)으로 변경되었을 때 자동 갱신
+    if (oldWidget.currentNavIndex != widget.currentNavIndex &&
+        widget.currentNavIndex == 1 &&
+        _lastNavIndex != 1) {
+      _loadLikedPets();
+    }
+    _lastNavIndex = widget.currentNavIndex;
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed && _isPageVisible) {
+    if (state == AppLifecycleState.resumed && widget.currentNavIndex == 1) {
       _loadLikedPets();
     }
   }
@@ -329,73 +349,78 @@ class _SnacksPageState extends State<SnacksPage>
               ),
             ),
             // 펫 정보
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            pet.name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+            Container(
+              height: 100, // 고정 높이로 오버플로우 방지
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          pet.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
-                        GestureDetector(
-                          onTap: () {
-                            // 이벤트 버블링 방지
-                            _removeLike(pet);
-                          },
-                          child: const Icon(
-                            Icons.favorite,
-                            color: Colors.red,
-                            size: 20,
-                          ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          _removeLike(pet);
+                        },
+                        child: const Icon(
+                          Icons.favorite,
+                          color: Colors.red,
+                          size: 20,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${pet.species} • ${pet.age}살',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                  const SizedBox(height: 2),
+                  if (pet.ownerName != null) ...[
                     Text(
-                      '${pet.species} • ${pet.age}살',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      '주인: ${pet.ownerName}',
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
-                    const SizedBox(height: 4),
-                    if (pet.ownerName != null)
-                      Text(
-                        '주인: ${pet.ownerName}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    if (pet.ownerName != null) const SizedBox(height: 2),
-                    if (pet.ownerAddress != null)
-                      Text(
-                        pet.ownerAddress!,
-                        style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    if (pet.ownerAddress != null) const SizedBox(height: 2),
-                    if (pet.likedAt != null)
-                      Text(
+                    const SizedBox(height: 2),
+                  ],
+                  if (pet.ownerAddress != null) ...[
+                    Text(
+                      pet.ownerAddress!,
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                    const SizedBox(height: 2),
+                  ],
+                  if (pet.likedAt != null)
+                    Expanded(
+                      child: Text(
                         '간식 준 날: ${_formatDate(pet.likedAt!)}',
                         style: const TextStyle(
                           fontSize: 10,
                           color: AppColors.primary,
                         ),
                         overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
             ),
           ],
