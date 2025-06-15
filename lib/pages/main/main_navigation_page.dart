@@ -7,7 +7,6 @@ import 'package:udangtan_flutter_app/pages/map/map_page.dart';
 import 'package:udangtan_flutter_app/pages/profile/profile_page.dart';
 import 'package:udangtan_flutter_app/pages/snacks/snacks_page.dart';
 import 'package:udangtan_flutter_app/services/auth_service.dart';
-import 'package:udangtan_flutter_app/services/pet_service.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -58,36 +57,16 @@ class _MainNavigationState extends State<MainNavigation>
     try {
       var userId = AuthService.getCurrentUserId();
       if (userId != null && pet.id != null) {
-        await PetService.likePet(userId, pet.id!);
-
         setState(() {
           if (!_likedPets.any((likedPet) => likedPet.id == pet.id)) {
             _likedPets.add(pet);
           }
         });
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${pet.name}에게 간식을 주었습니다! 🍖'),
-              backgroundColor: const Color(0xFF6C5CE7),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-
         _notifySnacksPageRefresh();
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('간식주기 실패: $e'),
-            backgroundColor: Colors.redAccent,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
+      // 에러 처리는 HomePage에서 이미 했으므로 여기서는 생략
     }
   }
 
