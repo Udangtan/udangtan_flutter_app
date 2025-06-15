@@ -46,7 +46,6 @@ class _ChatListPageState extends State<ChatListPage> {
         });
       }
     } catch (e) {
-      print('채팅방 로드 실패: $e');
       setState(() {
         _isLoading = false;
       });

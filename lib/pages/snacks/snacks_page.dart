@@ -428,7 +428,6 @@ class _SnacksPageState extends State<SnacksPage>
           imageUrl,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
-            print('이미지 로드 실패: $imageUrl, 에러: $error');
             return _buildPlaceholderImage(pet.species);
           },
           loadingBuilder: (context, child, loadingProgress) {

@@ -92,7 +92,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
         WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
       }
     } catch (e) {
-      print('메시지 로드 실패: $e');
+      // Handle error silently
     }
   }
 
@@ -406,7 +406,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
         radius: 18,
         backgroundImage: NetworkImage(profileImageUrl),
         onBackgroundImageError: (exception, stackTrace) {
-          print('프로필 이미지 로드 실패: $profileImageUrl');
+          // Handle error silently
         },
       );
     } else {

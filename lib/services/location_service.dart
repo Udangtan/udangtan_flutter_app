@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:udangtan_flutter_app/app/env_config.dart';
 import 'package:udangtan_flutter_app/models/user_location.dart';
@@ -268,74 +267,6 @@ class LocationService {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
-  }
-
-  // 주변 장소 검색 (공공 장소)
-  static Future<List<UserLocation>> getNearbyPlaces({
-    required double latitude,
-    required double longitude,
-    double radiusKm = 5.0,
-    List<String>? categories,
-  }) async {
-    try {
-      var query = SupabaseService.client
-          .from('locations')
-          .select('*')
-          .neq('category', 'user_address')
-          .eq('is_active', true);
-
-      if (categories != null && categories.isNotEmpty) {
-        // categories 조건을 OR로 처리
-        var categoryFilter = categories
-            .map((cat) => 'category.eq.$cat')
-            .join(',');
-        query = query.or(categoryFilter);
-      }
-
-      var response = await query;
-
-      var locations =
-          (response as List)
-              .map((json) => UserLocation.fromJson(json))
-              .toList();
-
-      // 거리 기준 필터링 (간단한 계산)
-      return locations.where((location) {
-        var distance = _calculateDistance(
-          latitude,
-          longitude,
-          location.latitude,
-          location.longitude,
-        );
-        return distance <= radiusKm;
-      }).toList();
-    } catch (e) {
-      throw Exception('주변 장소 조회 실패: $e');
-    }
-  }
-
-  // 간단한 거리 계산 (하버사인 공식 근사)
-  static double _calculateDistance(
-    double lat1,
-    double lon1,
-    double lat2,
-    double lon2,
-  ) {
-    const double radiusEarth = 6371; // 지구 반지름 (km)
-    var dLat = _degreesToRadians(lat2 - lat1);
-    var dLon = _degreesToRadians(lon2 - lon1);
-    var a =
-        sin(dLat / 2) * sin(dLat / 2) +
-        cos(_degreesToRadians(lat1)) *
-            cos(_degreesToRadians(lat2)) *
-            sin(dLon / 2) *
-            sin(dLon / 2);
-    var c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    return radiusEarth * c;
-  }
-
-  static double _degreesToRadians(double degrees) {
-    return degrees * (pi / 180);
   }
 
   /// 사용자가 주소를 등록했는지 확인

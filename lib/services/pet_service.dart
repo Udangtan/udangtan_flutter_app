@@ -443,6 +443,133 @@ class PetService {
     }
   }
 
+  // 현재 사용자의 위치 기반으로 5km 반경 내 펫들 조회 (좋아요, 거절 포함)
+  static Future<List<Pet>> getPetsNearbyWithAll({double radiusKm = 5.0}) async {
+    try {
+      var currentUserId = AuthService.getCurrentUserId();
+
+      if (currentUserId == null) {
+        throw Exception('로그인이 필요합니다');
+      }
+
+      // 1. 내 펫을 제외한 모든 펫 조회
+      var petsResponse = await SupabaseService.client
+          .from('pets')
+          .select()
+          .eq('is_available', true)
+          .neq('owner_id', currentUserId) // 내 펫 제외
+          .order('created_at', ascending: false);
+
+      List<Pet> pets = [];
+
+      for (var petData in petsResponse) {
+        try {
+          var ownerId = petData['owner_id'] as String;
+
+          // 2. 각 펫 소유자의 위치 조회 (강화된 로직)
+
+          List<dynamic> allLocationsResponse = [];
+
+          try {
+            // 모든 위치 정보를 조회
+            allLocationsResponse = await SupabaseService.client
+                .from('locations')
+                .select('*')
+                .eq('user_id', ownerId)
+                .eq('category', 'user_address');
+          } catch (e) {
+            // Handle error silently
+          }
+
+          Map<String, dynamic>? locationResponse;
+
+          if (allLocationsResponse.isNotEmpty) {
+            // 1순위: 기본주소이면서 활성화된 것
+            for (var location in allLocationsResponse) {
+              var locationMap = location as Map<String, dynamic>;
+              if (locationMap['is_default'] == true &&
+                  locationMap['is_active'] == true) {
+                locationResponse = locationMap;
+                break;
+              }
+            }
+
+            // 2순위: 기본주소 (활성화 상태 무관)
+            if (locationResponse == null) {
+              for (var location in allLocationsResponse) {
+                var locationMap = location as Map<String, dynamic>;
+                if (locationMap['is_default'] == true) {
+                  locationResponse = locationMap;
+                  break;
+                }
+              }
+            }
+
+            // 3순위: 활성화된 아무 위치
+            if (locationResponse == null) {
+              for (var location in allLocationsResponse) {
+                var locationMap = location as Map<String, dynamic>;
+                if (locationMap['is_active'] == true) {
+                  locationResponse = locationMap;
+                  break;
+                }
+              }
+            }
+
+            // 4순위: 아무 위치나 (최후의 수단)
+            locationResponse ??=
+                allLocationsResponse.first as Map<String, dynamic>;
+          }
+
+          double latitude, longitude;
+          if (locationResponse != null) {
+            try {
+              // 문자열로 저장된 경우를 대비해 파싱
+              var latStr = locationResponse['latitude'].toString();
+              var lngStr = locationResponse['longitude'].toString();
+              latitude = double.parse(latStr);
+              longitude = double.parse(lngStr);
+            } catch (e) {
+              // 파싱 실패시 해당 펫 건너뛰기
+              continue;
+            }
+          } else {
+            // 위치 정보가 없으면 해당 펫 건너뛰기
+            continue;
+          }
+
+          // 3. 소유자 정보 조회
+          var userResponse =
+              await SupabaseService.client
+                  .from('users')
+                  .select('name, profile_image_url')
+                  .eq('id', ownerId)
+                  .maybeSingle();
+
+          var pet = Pet.fromJson({
+            ...petData,
+            'latitude': latitude,
+            'longitude': longitude,
+            'distance_km': 0.0,
+            'owner_name': userResponse?['name'],
+            'owner_profile_image': userResponse?['profile_image_url'],
+            'owner_address': locationResponse['address'],
+            'owner_city': locationResponse['city'],
+            'owner_district': locationResponse['district'],
+          });
+
+          pets.add(pet);
+        } catch (e) {
+          continue;
+        }
+      }
+
+      return pets;
+    } catch (e) {
+      throw Exception('펫 조회 실패: $e');
+    }
+  }
+
   static Future<List<Pet>> _getFallbackPets(
     String currentUserId,
     double radiusKm,

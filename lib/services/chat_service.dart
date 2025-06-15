@@ -1,7 +1,7 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:udangtan_flutter_app/models/chat_message.dart';
 import 'package:udangtan_flutter_app/models/chat_room.dart';
 import 'package:udangtan_flutter_app/services/supabase_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ChatService {
   static RealtimeChannel? subscribeToMessages(
@@ -9,7 +9,7 @@ class ChatService {
     Function(ChatMessage) onNewMessage,
   ) {
     try {
-      final channel =
+      var channel =
           SupabaseService.client
               .channel('chat_messages_$chatRoomId')
               .onPostgresChanges(
@@ -23,10 +23,10 @@ class ChatService {
                 ),
                 callback: (payload) {
                   try {
-                    final newMessage = ChatMessage.fromJson(payload.newRecord);
+                    var newMessage = ChatMessage.fromJson(payload.newRecord);
                     onNewMessage(newMessage);
                   } catch (e) {
-                    print('새 메시지 파싱 오류: $e');
+                    // Handle error silently
                   }
                 },
               )
@@ -34,7 +34,6 @@ class ChatService {
 
       return channel;
     } catch (e) {
-      print('실시간 구독 오류: $e');
       return null;
     }
   }
@@ -101,7 +100,6 @@ class ChatService {
               .single();
 
       String targetPetOwnerId = petResponse['owner_id'];
-      // String targetPetName = petResponse['name'];
 
       // 자기 자신의 펫인지 확인
       if (targetPetOwnerId == currentUserId) {
@@ -121,7 +119,6 @@ class ChatService {
       }
 
       int myPetId = myPetResponse.first['id'];
-      // String myPetName = myPetResponse.first['name'];
 
       var existingRoom1 = await SupabaseService.client
           .from('chat_rooms_with_users')
@@ -172,7 +169,6 @@ class ChatService {
 
       return ChatRoom.fromJson(chatRoomWithUsersResponse);
     } catch (e) {
-      print('findOrCreatePetChatRoom 에러: $e');
       rethrow;
     }
   }
@@ -224,7 +220,6 @@ class ChatService {
 
       return ChatMessage.fromJson(response);
     } catch (error) {
-      print('메시지 전송 오류: $error');
       return null;
     }
   }
@@ -302,7 +297,6 @@ class ChatService {
 
       return unreadResponse.length;
     } catch (error) {
-      print('채팅방별 읽지 않은 메시지 개수 조회 오류: $error');
       return 0;
     }
   }
@@ -336,7 +330,6 @@ class ChatService {
 
       return unreadCounts;
     } catch (error) {
-      print('전체 채팅방 읽지 않은 메시지 개수 조회 오류: $error');
       return {};
     }
   }
