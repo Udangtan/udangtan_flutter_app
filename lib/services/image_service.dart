@@ -197,5 +197,3 @@ class ImageService {
     }
   }
 }
-
-// TODO Implement this library.
