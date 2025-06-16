@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:udangtan_flutter_app/models/pet.dart';
+import 'package:udangtan_flutter_app/services/image_service.dart';
 import 'package:udangtan_flutter_app/services/pet_service.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
 import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
@@ -16,6 +20,7 @@ class PetEditPage extends StatefulWidget {
 class _PetEditPageState extends State<PetEditPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  bool _isUploadingImage = false;
 
   // Form controllers
   final TextEditingController _nameController = TextEditingController();
@@ -32,6 +37,10 @@ class _PetEditPageState extends State<PetEditPage> {
   String? _selectedVaccinationStatus;
   final List<String> _selectedPersonalities = [];
 
+  // Image data
+  File? _selectedImage;
+  String? _currentImageUrl;
+
   @override
   void initState() {
     super.initState();
@@ -44,6 +53,11 @@ class _PetEditPageState extends State<PetEditPage> {
     _ageController.text = widget.pet.age.toString();
     _weightController.text = widget.pet.weight?.toString() ?? '';
     _descriptionController.text = widget.pet.description ?? '';
+
+    // 기존 이미지 URL 설정
+    if (widget.pet.profileImages.isNotEmpty) {
+      _currentImageUrl = widget.pet.profileImages.first;
+    }
 
     // 품종은 선택된 종에 따라 유효한지 확인
     var validBreeds = PetService.breedOptions[widget.pet.species] ?? [];
@@ -76,6 +90,29 @@ class _PetEditPageState extends State<PetEditPage> {
             : null;
 
     _selectedPersonalities.addAll(widget.pet.personality);
+  }
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
+
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+      });
+    }
+  }
+
+  Future<void> _removeImage() async {
+    setState(() {
+      _selectedImage = null;
+      _currentImageUrl = null;
+    });
   }
 
   @override
@@ -147,6 +184,23 @@ class _PetEditPageState extends State<PetEditPage> {
     setState(() => _isLoading = true);
 
     try {
+      String? imageUrl = _currentImageUrl;
+
+      // 새 이미지가 선택되었다면 업로드
+      if (_selectedImage != null) {
+        setState(() => _isUploadingImage = true);
+        imageUrl = await ImageService.uploadPetImage(
+          _selectedImage!,
+          widget.pet.id!,
+        );
+        setState(() => _isUploadingImage = false);
+      }
+
+      List<String> profileImages = [];
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        profileImages.add(imageUrl);
+      }
+
       Pet updatedPet = Pet(
         id: widget.pet.id,
         ownerId: widget.pet.ownerId,
@@ -155,7 +209,7 @@ class _PetEditPageState extends State<PetEditPage> {
         breed: _selectedBreed!,
         age: int.parse(_ageController.text),
         gender: _selectedGender!,
-        profileImages: widget.pet.profileImages,
+        profileImages: profileImages,
         personality: _selectedPersonalities,
         description:
             _descriptionController.text.trim().isEmpty
@@ -193,7 +247,10 @@ class _PetEditPageState extends State<PetEditPage> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _isUploadingImage = false;
+        });
       }
     }
   }
@@ -212,6 +269,11 @@ class _PetEditPageState extends State<PetEditPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 프로필 이미지 섹션
+              _buildSectionTitle('프로필 사진'),
+              _buildImageSection(),
+              const SizedBox(height: 20),
+
               // 동물 종류 (수정 불가)
               _buildSectionTitle('동물 종류'),
               _buildDisabledField(widget.pet.species),
@@ -348,7 +410,8 @@ class _PetEditPageState extends State<PetEditPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _updatePet,
+                  onPressed:
+                      (_isLoading || _isUploadingImage) ? null : _updatePet,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -357,16 +420,30 @@ class _PetEditPageState extends State<PetEditPage> {
                     ),
                   ),
                   child:
-                      _isLoading
-                          ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
+                      (_isLoading || _isUploadingImage)
+                          ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 10),
+                              Text(
+                                _isUploadingImage ? '이미지 업로드 중...' : '수정 중...',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           )
                           : const Text(
                             '수정 완료',
@@ -382,6 +459,109 @@ class _PetEditPageState extends State<PetEditPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildImageSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        children: [
+          if (_selectedImage != null || _currentImageUrl != null) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child:
+                  _selectedImage != null
+                      ? Image.file(
+                        _selectedImage!,
+                        height: 200,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      )
+                      : Image.network(
+                        _currentImageUrl!,
+                        height: 200,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 200,
+                            width: double.infinity,
+                            color: Colors.grey[300],
+                            child: const Icon(
+                              Icons.error,
+                              size: 50,
+                              color: Colors.grey,
+                            ),
+                          );
+                        },
+                      ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _pickImage,
+                    icon: const Icon(Icons.edit),
+                    label: const Text('이미지 변경'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _removeImage,
+                    icon: const Icon(Icons.delete),
+                    label: const Text('이미지 삭제'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            Container(
+              height: 200,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.grey[300]!,
+                  style: BorderStyle.solid,
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.pets, size: 64, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    '프로필 사진 없음',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _pickImage,
+                icon: const Icon(Icons.add_a_photo),
+                label: const Text('이미지 추가'),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
