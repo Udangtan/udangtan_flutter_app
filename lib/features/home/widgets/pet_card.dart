@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:udangtan_flutter_app/models/pet.dart';
 
 class PetCard extends StatefulWidget {
@@ -22,6 +21,7 @@ class PetCard extends StatefulWidget {
 
 class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
   bool _imageLoaded = false;
+  bool _imageError = false;
   late AnimationController _skeletonController;
   late Animation<double> _skeletonAnimation;
 
@@ -36,10 +36,12 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
       CurvedAnimation(parent: _skeletonController, curve: Curves.easeInOut),
     );
 
+    // 이미지가 없으면 바로 로딩 완료 처리
     if (widget.pet.profileImages.isEmpty) {
       _imageLoaded = true;
+      _imageError = false;
     } else {
-      _skeletonController.repeat(reverse: true);
+      _skeletonController.repeat();
     }
   }
 
@@ -62,8 +64,7 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(20),
-                child:
-                    _imageLoaded ? _buildMainImage() : _buildSkeletonLoader(),
+                child: _buildMainImage(),
               ),
               if (_imageLoaded) ...[
                 ClipRRect(
@@ -82,30 +83,6 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
                           Colors.black.withValues(alpha: 0.8),
                         ],
                         stops: const [0.0, 0.4, 0.7, 1.0],
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 24,
-                  right: 24,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      widget.pet.distanceKm != null
-                          ? '${widget.pet.distanceKm!.toStringAsFixed(1)}km'
-                          : '${widget.pet.ownerCity ?? '서울'} ${widget.pet.ownerDistrict ?? '강남구'}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -246,7 +223,6 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
                                   .toList(),
                         ),
                       const SizedBox(height: 16),
-
                       if (widget.pet.ownerName != null ||
                           widget.pet.ownerAddress != null)
                         Container(
@@ -297,7 +273,6 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
                             ],
                           ),
                         ),
-
                       const SizedBox(height: 16),
                       if (widget.pet.description != null)
                         Container(
@@ -340,36 +315,43 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
   }
 
   Widget _buildMainImage() {
-    if (widget.pet.profileImages.isNotEmpty) {
+    // 이미지 URL이 없거나 비어있는 경우
+    if (widget.pet.profileImages.isEmpty) {
+      return Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: Colors.grey[200],
+        child: const Center(
+          child: Icon(Icons.pets, size: 80, color: Colors.grey),
+        ),
+      );
+    }
+
+    String imageUrl = widget.pet.profileImages.first;
+
+    // URL이 비어있는 경우
+    if (imageUrl.isEmpty) {
+      return Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: Colors.grey[200],
+        child: const Center(
+          child: Icon(Icons.pets, size: 80, color: Colors.grey),
+        ),
+      );
+    }
+
+    // 이미지 로딩이 완료되었고 에러가 없는 경우 실제 이미지 표시
+    if (_imageLoaded && !_imageError) {
       return Image.network(
-        widget.pet.profileImages.first,
+        imageUrl,
         width: double.infinity,
         height: double.infinity,
         fit: BoxFit.cover,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                setState(() {
-                  _imageLoaded = true;
-                });
-                _skeletonController.stop();
-              }
-            });
-            return child;
-          }
-          return _buildSkeletonLoader();
-        },
         errorBuilder: (context, error, stackTrace) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              setState(() {
-                _imageLoaded = true;
-              });
-              _skeletonController.stop();
-            }
-          });
           return Container(
+            width: double.infinity,
+            height: double.infinity,
             color: Colors.grey[200],
             child: const Center(
               child: Icon(Icons.pets, size: 80, color: Colors.grey),
@@ -377,14 +359,68 @@ class _PetCardState extends State<PetCard> with TickerProviderStateMixin {
           );
         },
       );
-    } else {
-      return Container(
-        color: Colors.grey[200],
-        child: const Center(
-          child: Icon(Icons.pets, size: 80, color: Colors.grey),
-        ),
-      );
     }
+
+    // 로딩 중이거나 에러가 발생한 경우
+    return Stack(
+      children: [
+        // 백그라운드에서 실제 이미지 로드 시도
+        Positioned.fill(
+          child: Image.network(
+            imageUrl,
+            width: double.infinity,
+            height: double.infinity,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) {
+                // 이미지 로딩 완료
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    setState(() {
+                      _imageLoaded = true;
+                      _imageError = false;
+                    });
+                    _skeletonController.stop();
+                    _skeletonController.reset();
+                  }
+                });
+                return child;
+              }
+              // 로딩 중
+              return const SizedBox.shrink();
+            },
+            errorBuilder: (context, error, stackTrace) {
+              // 이미지 로딩 에러
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    _imageLoaded = true;
+                    _imageError = true;
+                  });
+                  _skeletonController.stop();
+                  _skeletonController.reset();
+                }
+              });
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+        // 로딩 상태이거나 에러가 발생한 경우 스켈레톤 또는 에러 UI 표시
+        if (!_imageLoaded || _imageError)
+          _imageError ? _buildErrorImage() : _buildSkeletonLoader(),
+      ],
+    );
+  }
+
+  Widget _buildErrorImage() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: Colors.grey[200],
+      child: const Center(
+        child: Icon(Icons.pets, size: 80, color: Colors.grey),
+      ),
+    );
   }
 
   Widget _buildSkeletonLoader() {

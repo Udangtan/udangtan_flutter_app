@@ -51,6 +51,8 @@ class PetCardStackState extends State<PetCardStack>
   }
 
   Future<void> _initializeCards() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
     });
@@ -65,9 +67,12 @@ class PetCardStackState extends State<PetCardStack>
         _cardStack = [];
       }
       _currentIndex = 0;
-      setState(() {
-        _isLoading = false;
-      });
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       try {
         _allPets = await PetService.getAllPets();
@@ -82,9 +87,12 @@ class PetCardStackState extends State<PetCardStack>
         _cardStack = [];
       }
       _currentIndex = 0;
-      setState(() {
-        _isLoading = false;
-      });
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -95,15 +103,19 @@ class PetCardStackState extends State<PetCardStack>
   }
 
   void simulateSwipe(SwipeResult result) {
-    if (_cardStack.isEmpty || _animationController.isAnimating) return;
+    if (_cardStack.isEmpty || _animationController.isAnimating || !mounted)
+      return;
     _handleSwipe(result);
   }
 
   Future<void> refreshCards() async {
+    if (!mounted) return;
     await _initializeCards();
   }
 
   Future<void> refreshPets({bool forceRefresh = false}) async {
+    if (!mounted) return;
+
     if (forceRefresh) {
       setState(() {
         _allPets.clear();
@@ -117,7 +129,7 @@ class PetCardStackState extends State<PetCardStack>
   }
 
   void _handleSwipe(SwipeResult result) {
-    if (_cardStack.isEmpty) return;
+    if (_cardStack.isEmpty || !mounted) return;
 
     var currentPet = _cardStack[_currentIndex];
     widget.onSwipe(currentPet, result);
@@ -131,10 +143,12 @@ class PetCardStackState extends State<PetCardStack>
     _allPets.removeWhere((pet) => pet.id == currentPet.id);
 
     if (_allPets.isEmpty) {
-      setState(() {
-        _cardStack.clear();
-        _currentIndex = 0;
-      });
+      if (mounted) {
+        setState(() {
+          _cardStack.clear();
+          _currentIndex = 0;
+        });
+      }
       return;
     }
 
@@ -142,7 +156,11 @@ class PetCardStackState extends State<PetCardStack>
   }
 
   void _animateCardRemoval() {
+    if (!mounted) return;
+
     _animationController.forward().then((_) {
+      if (!mounted) return;
+
       setState(() {
         if (_cardStack.isNotEmpty) {
           _cardStack.removeAt(_currentIndex % _cardStack.length);
@@ -393,12 +411,14 @@ class PetCardStackState extends State<PetCardStack>
 
     return GestureDetector(
       onPanStart: (details) {
+        if (!mounted) return;
         setState(() {
           _isDragging = true;
         });
         widget.onSwipeStateChanged?.call(true, 0.0);
       },
       onPanUpdate: (details) {
+        if (!mounted) return;
         setState(() {
           _position += details.delta.dx;
         });
@@ -406,6 +426,8 @@ class PetCardStackState extends State<PetCardStack>
         widget.onSwipeStateChanged?.call(true, opacity);
       },
       onPanEnd: (details) {
+        if (!mounted) return;
+
         var swipeThreshold = size.width * 0.3;
 
         if (_position.abs() > swipeThreshold) {

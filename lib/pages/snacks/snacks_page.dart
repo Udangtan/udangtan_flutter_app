@@ -399,15 +399,7 @@ class _SnacksPageState extends State<SnacksPage>
                     ),
                     const SizedBox(height: 2),
                   ],
-                  if (pet.ownerAddress != null) ...[
-                    Text(
-                      pet.ownerAddress!,
-                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                    const SizedBox(height: 2),
-                  ],
+                  const SizedBox(height: 6),
                   if (pet.likedAt != null)
                     Expanded(
                       child: Text(
