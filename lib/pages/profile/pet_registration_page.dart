@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:udangtan_flutter_app/models/pet.dart';
 import 'package:udangtan_flutter_app/pages/profile/pet_registration_complete_page.dart';
 import 'package:udangtan_flutter_app/services/auth_service.dart';
 import 'package:udangtan_flutter_app/services/pet_service.dart';
+import 'package:udangtan_flutter_app/services/image_service.dart';
 import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
 import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
 
@@ -21,6 +24,7 @@ class _PetRegistrationPageState extends State<PetRegistrationPage> {
 
   int _currentStep = 0;
   bool _isLoading = false;
+  bool _isUploadingImage = false;
 
   // Form controllers
   final TextEditingController _nameController = TextEditingController();
@@ -37,6 +41,9 @@ class _PetRegistrationPageState extends State<PetRegistrationPage> {
   String? _selectedIsNeutered;
   String? _selectedVaccinationStatus;
   final List<String> _selectedPersonalities = [];
+
+  // Image data
+  File? _selectedImage;
 
   Timer? _debounceTimer;
 
@@ -56,8 +63,30 @@ class _PetRegistrationPageState extends State<PetRegistrationPage> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
+
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+      });
+    }
+  }
+
+  Future<void> _removeImage() async {
+    setState(() {
+      _selectedImage = null;
+    });
+  }
+
   void _nextStep() {
-    if (_currentStep < 4) {
+    if (_currentStep < 5) {
       setState(() => _currentStep++);
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
@@ -79,15 +108,17 @@ class _PetRegistrationPageState extends State<PetRegistrationPage> {
   bool _canProceedToNext() {
     switch (_currentStep) {
       case 0:
-        return _selectedSpecies != null;
+        return true; // 이미지는 선택사항
       case 1:
-        return _selectedBreed != null && _selectedGender != null;
+        return _selectedSpecies != null;
       case 2:
+        return _selectedBreed != null && _selectedGender != null;
+      case 3:
         return _nameController.text.isNotEmpty &&
             _ageController.text.isNotEmpty;
-      case 3:
-        return _selectedPersonalities.isNotEmpty;
       case 4:
+        return _selectedPersonalities.isNotEmpty;
+      case 5:
         return true; // 선택사항들
       default:
         return false;
@@ -191,6 +222,34 @@ class _PetRegistrationPageState extends State<PetRegistrationPage> {
 
       Pet createdPet = await PetService.createPet(pet);
 
+      // 이미지가 선택되었다면 업로드
+      if (_selectedImage != null) {
+        setState(() => _isUploadingImage = true);
+        try {
+          String imageUrl = await ImageService.uploadPetImage(
+            _selectedImage!,
+            createdPet.id!,
+          );
+
+          // 이미지 URL로 펫 정보 업데이트
+          Pet updatedPet = createdPet.copyWith(profileImages: [imageUrl]);
+
+          createdPet = await PetService.updatePet(updatedPet);
+        } catch (imageError) {
+          // 이미지 업로드 실패해도 펫 등록은 계속 진행
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('이미지 업로드 실패: $imageError'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        } finally {
+          setState(() => _isUploadingImage = false);
+        }
+      }
+
       if (mounted) {
         var result = await Navigator.push<bool>(
           context,
@@ -237,6 +296,7 @@ class _PetRegistrationPageState extends State<PetRegistrationPage> {
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
+                  _buildImageStep(),
                   _buildSpeciesStep(),
                   _buildBreedGenderStep(),
                   _buildBasicInfoStep(),
@@ -256,10 +316,10 @@ class _PetRegistrationPageState extends State<PetRegistrationPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       child: Row(
-        children: List.generate(5, (index) {
+        children: List.generate(6, (index) {
           return Expanded(
             child: Container(
-              margin: EdgeInsets.only(right: index < 4 ? 8 : 0),
+              margin: EdgeInsets.only(right: index < 5 ? 8 : 0),
               height: 4,
               decoration: BoxDecoration(
                 color:
@@ -271,6 +331,116 @@ class _PetRegistrationPageState extends State<PetRegistrationPage> {
             ),
           );
         }),
+      ),
+    );
+  }
+
+  Widget _buildImageStep() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '프로필 사진을 등록해주세요',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '반려동물의 사진을 선택해주세요 (선택사항)',
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+          const SizedBox(height: 40),
+          _buildImageSection(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImageSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        children: [
+          if (_selectedImage != null) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.file(
+                _selectedImage!,
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _pickImage,
+                    icon: const Icon(Icons.edit),
+                    label: const Text('이미지 변경'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _removeImage,
+                    icon: const Icon(Icons.delete),
+                    label: const Text('이미지 삭제'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            Container(
+              height: 200,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.grey[300]!,
+                  style: BorderStyle.solid,
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.pets, size: 64, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    '프로필 사진 없음',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '나중에도 추가할 수 있어요',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _pickImage,
+                icon: const Icon(Icons.add_a_photo),
+                label: const Text('이미지 추가'),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -790,9 +960,9 @@ class _PetRegistrationPageState extends State<PetRegistrationPage> {
         height: 56,
         child: ElevatedButton(
           onPressed:
-              _isLoading
+              (_isLoading || _isUploadingImage)
                   ? null
-                  : (_currentStep == 4
+                  : (_currentStep == 5
                       ? _submitPet
                       : _canProceedToNext()
                       ? _nextStep
@@ -806,17 +976,30 @@ class _PetRegistrationPageState extends State<PetRegistrationPage> {
             elevation: 0,
           ),
           child:
-              _isLoading
-                  ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
+              (_isLoading || _isUploadingImage)
+                  ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        _isUploadingImage ? '이미지 업로드 중...' : '등록 중...',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   )
                   : Text(
-                    _currentStep == 4 ? '등록 완료' : '다음',
+                    _currentStep == 5 ? '등록 완료' : '다음',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
