@@ -85,5 +85,9 @@
 		</dict>
 		<key>io.flutter.embedded_views_preview</key>
 		<true/>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>사진을 선택하여 반려동물 프로필 이미지로 사용합니다.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>사진을 촬영하여 반려동물 프로필 이미지로 사용합니다.</string>
 	</dict>
 </plist>
