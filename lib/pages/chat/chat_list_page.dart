@@ -3,6 +3,7 @@ import 'package:udangtan_flutter_app/models/chat_room.dart';
 import 'package:udangtan_flutter_app/pages/chat/chat_detail_page.dart';
 import 'package:udangtan_flutter_app/services/chat_service.dart';
 import 'package:udangtan_flutter_app/services/supabase_service.dart';
+import 'package:udangtan_flutter_app/shared/styles/app_colors.dart';
 import 'package:udangtan_flutter_app/shared/widgets/common_app_bar.dart';
 
 class ChatListPage extends StatefulWidget {
@@ -128,12 +129,31 @@ class _ChatListPageState extends State<ChatListPage>
             style: TextStyle(fontSize: 14, color: Colors.grey),
           ),
           const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
+          GestureDetector(
+            onTap: () {
               // 간식함 페이지로 이동
               widget.onNavTap(1); // 간식함이 인덱스 1이라고 가정
             },
-            child: const Text('간식함으로 가기'),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '간식함으로 가기',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
