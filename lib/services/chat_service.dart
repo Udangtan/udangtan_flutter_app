@@ -38,10 +38,110 @@ class ChatService {
     }
   }
 
+  // 채팅 목록을 위한 전역 실시간 구독 (새로 추가)
+  static RealtimeChannel? subscribeToAllChatUpdates(
+    String userId, {
+    required Function(Map<String, dynamic>) onNewMessage,
+    required Function(Map<String, dynamic>) onMessageUpdate,
+    required Function(Map<String, dynamic>) onChatRoomUpdate,
+  }) {
+    try {
+      var channel =
+          SupabaseService.client
+              .channel('chat_list_updates_$userId')
+              // 새 메시지 감지
+              .onPostgresChanges(
+                event: PostgresChangeEvent.insert,
+                schema: 'public',
+                table: 'chat_messages',
+                callback: (payload) {
+                  onNewMessage(payload.newRecord);
+                },
+              )
+              // 메시지 업데이트 감지 (읽음 처리 등)
+              .onPostgresChanges(
+                event: PostgresChangeEvent.update,
+                schema: 'public',
+                table: 'chat_messages',
+                callback: (payload) {
+                  onMessageUpdate(payload.newRecord);
+                },
+              )
+              // 채팅방 업데이트 감지
+              .onPostgresChanges(
+                event: PostgresChangeEvent.update,
+                schema: 'public',
+                table: 'chat_rooms',
+                callback: (payload) {
+                  onChatRoomUpdate(payload.newRecord);
+                },
+              )
+              .subscribe();
+
+      return channel;
+    } catch (e) {
+      return null;
+    }
+  }
+
   // 구독 해제
   static Future<void> unsubscribeFromMessages(RealtimeChannel? channel) async {
     if (channel != null) {
       await SupabaseService.client.removeChannel(channel);
+    }
+  }
+
+  // 개별 채팅방의 읽지 않은 메시지 수 조회 (새로 추가)
+  static Future<int> getUnreadCount(int chatRoomId, String userId) async {
+    try {
+      final response = await SupabaseService.client
+          .from('chat_messages')
+          .select('id')
+          .eq('chat_room_id', chatRoomId)
+          .neq('sender_id', userId)
+          .eq('is_read', false);
+
+      return response.length;
+    } catch (e) {
+      print('읽지 않은 메시지 수 조회 실패: $e');
+      return 0;
+    }
+  }
+
+  // 특정 채팅방이 현재 사용자와 관련있는지 확인 (새로 추가)
+  static Future<bool> isChatRoomRelatedToUser(
+    int chatRoomId,
+    String userId,
+  ) async {
+    try {
+      final response =
+          await SupabaseService.client
+              .from('chat_rooms')
+              .select('user1_id, user2_id')
+              .eq('id', chatRoomId)
+              .eq('is_active', true)
+              .single();
+
+      return response['user1_id'] == userId || response['user2_id'] == userId;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // 특정 채팅방 정보만 업데이트 (새로 추가)
+  static Future<ChatRoom?> getChatRoomById(int chatRoomId) async {
+    try {
+      final response =
+          await SupabaseService.client
+              .from('chat_rooms_with_users')
+              .select('*')
+              .eq('id', chatRoomId)
+              .eq('is_active', true)
+              .single();
+
+      return ChatRoom.fromJson(response);
+    } catch (e) {
+      return null;
     }
   }
 

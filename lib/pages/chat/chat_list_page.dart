@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:udangtan_flutter_app/models/chat_room.dart';
 import 'package:udangtan_flutter_app/pages/chat/chat_detail_page.dart';
 import 'package:udangtan_flutter_app/services/chat_service.dart';
@@ -27,18 +28,116 @@ class _ChatListPageState extends State<ChatListPage>
   bool _isLoading = true;
   int _lastNavIndex = -1;
 
+  // Realtime subscription
+  RealtimeChannel? _chatUpdatesChannel;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _lastNavIndex = widget.currentNavIndex;
     _loadChatRooms();
+    _setupRealtimeListener();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    ChatService.unsubscribeFromMessages(_chatUpdatesChannel);
     super.dispose();
+  }
+
+  void _setupRealtimeListener() {
+    final currentUserId = SupabaseService.client.auth.currentUser?.id;
+    if (currentUserId == null) return;
+
+    _chatUpdatesChannel = ChatService.subscribeToAllChatUpdates(
+      currentUserId,
+      onNewMessage: _handleNewMessage,
+      onMessageUpdate: _handleMessageUpdate,
+      onChatRoomUpdate: _handleChatRoomUpdate,
+    );
+  }
+
+  Future<void> _handleNewMessage(Map<String, dynamic> messageData) async {
+    final currentUserId = SupabaseService.client.auth.currentUser?.id;
+    if (currentUserId == null) return;
+
+    final chatRoomId = messageData['chat_room_id'] as int?;
+    final senderId = messageData['sender_id'] as String?;
+
+    if (chatRoomId != null) {
+      // 해당 채팅방이 현재 사용자와 관련있는지 확인
+      final isRelated = await ChatService.isChatRoomRelatedToUser(
+        chatRoomId,
+        currentUserId,
+      );
+
+      if (isRelated) {
+        // 내가 보낸 메시지가 아닌 경우에만 읽지 않은 메시지 수 증가
+        if (senderId != currentUserId) {
+          setState(() {
+            _unreadCounts[chatRoomId] = (_unreadCounts[chatRoomId] ?? 0) + 1;
+          });
+        }
+
+        // 채팅방 목록 순서 업데이트
+        await _updateChatRoomOrder();
+      }
+    }
+  }
+
+  Future<void> _handleMessageUpdate(Map<String, dynamic> messageData) async {
+    final currentUserId = SupabaseService.client.auth.currentUser?.id;
+    if (currentUserId == null) return;
+
+    final chatRoomId = messageData['chat_room_id'] as int?;
+
+    if (chatRoomId != null) {
+      // 읽지 않은 메시지 수 다시 계산
+      await _updateUnreadCount(chatRoomId);
+    }
+  }
+
+  Future<void> _handleChatRoomUpdate(Map<String, dynamic> chatRoomData) async {
+    final chatRoomId = chatRoomData['id'] as int?;
+
+    if (chatRoomId != null) {
+      await _updateChatRoomOrder();
+    }
+  }
+
+  Future<void> _updateUnreadCount(int chatRoomId) async {
+    try {
+      final currentUserId = SupabaseService.client.auth.currentUser?.id;
+      if (currentUserId == null) return;
+
+      final unreadCount = await ChatService.getUnreadCount(
+        chatRoomId,
+        currentUserId,
+      );
+
+      setState(() {
+        _unreadCounts[chatRoomId] = unreadCount;
+      });
+    } catch (e) {
+      print('읽지 않은 메시지 수 업데이트 실패: $e');
+    }
+  }
+
+  Future<void> _updateChatRoomOrder() async {
+    try {
+      final currentUserId = SupabaseService.client.auth.currentUser?.id;
+      if (currentUserId == null) return;
+
+      final updatedChatRooms = await ChatService.getChatRooms(currentUserId);
+
+      setState(() {
+        _chatRooms = updatedChatRooms;
+      });
+    } catch (e) {
+      print('채팅방 순서 업데이트 실패: $e');
+    }
   }
 
   @override
